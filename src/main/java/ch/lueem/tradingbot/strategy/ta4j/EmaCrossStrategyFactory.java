@@ -25,7 +25,7 @@ public class EmaCrossStrategyFactory {
         Rule exitRule = new CrossedDownIndicatorRule(shortEma, longEma);
 
         return new BaseStrategy(
-                "EMA-%d-%d-Cross".formatted(shortLength, longLength),
+                "EMA-Cross(short=%d, long=%d)".formatted(shortLength, longLength),
                 entryRule,
                 exitRule);
     }

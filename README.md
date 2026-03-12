@@ -9,6 +9,7 @@ Kleines Java-21-Maven-Projekt fuer lokales Backtesting mit `ta4j`.
 - EMA-Cross-Strategie
 - JSON ist das feste Ergebnisformat
 - Logback fuer technische Laufzeit-Logs
+- Ausfuehrungsmodi sind systemweit als `BACKTEST | PAPER | LIVE` definiert
 
 Nicht Teil dieser V1:
 
@@ -25,7 +26,7 @@ Nicht Teil dieser V1:
 
 ## Architektur
 
-- `App`: duennter Einstiegspunkt
+- `App`: Einstiegspunkt
 - `application`: Konfigurationsladen und Use-Case-Orchestrierung
 - `backtest`: CSV-Loading, Strategieausfuehrung und Kennzahlen
 - `bot`: Single-Bot-Runtime, Status, letzter Lauf und Tick-Ergebnisse
@@ -33,6 +34,14 @@ Nicht Teil dieser V1:
 - `portfolio`: Positions- und Portfoliostand fuer laufende Bots
 - `reporting`: JSON-Rendering des `BacktestReport`
 - `strategy`: Strategieaufbau fuer ta4j
+- bevorzugt werden fachliche Klassennamen wie `PaperExecutionService`, `PaperPortfolioService`, `SequenceMarketSnapshotProvider`
+
+## Ausfuehrungsmodi
+
+- `BACKTEST`: historische Simulation gegen CSV- oder andere historische Datensaetze
+- `PAPER`: live oder nahe Echtzeit gegen Demo-/Testumgebung ohne echtes Kapital
+- `LIVE`: Ausfuehrung gegen die produktive Exchange-API mit echtem Kapital
+- Deployment-Ort wie lokal, Server oder Container ist davon getrennt und kein Trading-Modus
 
 ## Konfiguration
 
@@ -53,8 +62,9 @@ backtest:
   timeframe: 1h
   strategy:
     name: ema_cross
-    shortEma: 3
-    longEma: 7
+    parameters:
+      shortEma: 3
+      longEma: 7
   portfolio:
     initialCash: 10000.0
 
@@ -87,6 +97,7 @@ data/historical/BTCUSDT-1h.csv
 - Logging und Reporting sind bewusst getrennt
 - JSON ist fuer diese V1 der feste standard
 - Das aktuelle JSON-Schema wird als `reportVersion: "v3"` ausgegeben
+- Backtest-Reports enthalten `metadata.mode: "BACKTEST"` als explizite Ausfuehrungsrealitaet
 - Geld- und Prozentwerte werden als numerische JSON-Werte mit 4 Dezimalstellen ausgegeben
 - Zaehler bleiben Integer, Statuswerte bleiben Boolean
 - Positionsdetails werden immer mit ausgegeben; offene Positionen haben `exitTime` und `exitPrice` auf `null`

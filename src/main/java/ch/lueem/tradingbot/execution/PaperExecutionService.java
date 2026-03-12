@@ -3,21 +3,20 @@ package ch.lueem.tradingbot.execution;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-import ch.lueem.tradingbot.portfolio.InMemoryPortfolioService;
+import ch.lueem.tradingbot.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.portfolio.PortfolioSnapshot;
 import ch.lueem.tradingbot.portfolio.PositionSnapshot;
-import ch.lueem.tradingbot.strategy.signal.TradeSignal;
 
 /**
- * Simulates paper-trading executions in memory without talking to a real exchange.
+ * Simulates paper-trading executions without talking to a real exchange.
  */
-public class InMemoryPaperExecutionService implements ExecutionService {
+public class PaperExecutionService implements ExecutionService {
 
     private static final int QUANTITY_SCALE = 8;
 
-    private final InMemoryPortfolioService portfolioService;
+    private final PaperPortfolioService portfolioService;
 
-    public InMemoryPaperExecutionService(InMemoryPortfolioService portfolioService) {
+    public PaperExecutionService(PaperPortfolioService portfolioService) {
         if (portfolioService == null) {
             throw new IllegalArgumentException("portfolioService must not be null.");
         }

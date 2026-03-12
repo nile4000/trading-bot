@@ -83,6 +83,7 @@ public class BacktestReportJsonPrinter {
                 OffsetDateTime.now(ZoneOffset.UTC).toString(),
                 REPORT_VERSION,
                 new BacktestMetadataSection(
+                        report.metadata().mode(),
                         request.csvPath().toString(),
                         report.metadata().symbol(),
                         report.metadata().timeframe(),

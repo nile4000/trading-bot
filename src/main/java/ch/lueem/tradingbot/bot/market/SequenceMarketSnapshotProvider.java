@@ -7,14 +7,14 @@ import java.util.List;
 import ch.lueem.tradingbot.bot.model.BotDefinition;
 
 /**
- * Provides market snapshots from an in-memory queue for deterministic bot runtime cycles.
+ * Provides a deterministic sequence of market snapshots for local bot runtime cycles.
  */
-public class InMemoryMarketSnapshotProvider implements MarketSnapshotProvider {
+public class SequenceMarketSnapshotProvider implements MarketSnapshotProvider {
 
     private final Deque<MarketSnapshot> snapshots;
     private MarketSnapshot lastSnapshot;
 
-    public InMemoryMarketSnapshotProvider(List<MarketSnapshot> snapshots) {
+    public SequenceMarketSnapshotProvider(List<MarketSnapshot> snapshots) {
         if (snapshots == null || snapshots.isEmpty()) {
             throw new IllegalArgumentException("snapshots must not be null or empty.");
         }

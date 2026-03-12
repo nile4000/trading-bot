@@ -35,10 +35,12 @@
 - Keep strategy definition, bot runtime state, execution, and portfolio state in separate models.
 - Prefer top-level records for domain, config, runtime-state, and cross-layer transport models.
 - Avoid extracting one-field local helper records when a simple primitive or existing model keeps the code clearer.
+- Prefer role-based class names over storage-detail names like `InMemory` unless the storage mechanism is the main distinction.
 
 ## Backtest Modeling
 
 - Backtest reports should include simulation metadata and position-level details.
+- Backtest metadata should include the shared execution mode and use `BACKTEST` for historical runs.
 - Keep simulation assumptions explicit in metadata, especially `executionModel` and `positionSizingModel`.
 - `signal_bar_close` means the fill is simulated on the close of the signal bar.
 - `all_in_spot` means the full available cash balance is allocated on entry and fully closed on exit.
@@ -46,6 +48,8 @@
 
 ## Bot And Strategy Models
 
+- Use `BACKTEST | PAPER | LIVE` as the canonical execution-mode vocabulary across bot runtime, backtest reporting, and future APIs.
+- Do not use `LOCAL` as a primary trading mode; it is a deployment concern, not an execution reality.
 - Bot runtime state should stay operational and minimal: `botId`, `botVersion`, `mode`, `status`, `lastRunAt`, `lastSuccessAt`, `lastError`, `openPosition`.
 - Strategy-facing identifiers should stay separate from bot runtime state.
 - Strategy definitions should carry `symbol`, `timeframe`, `strategyName`, and typed strategy parameters.

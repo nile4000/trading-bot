@@ -7,9 +7,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Stores portfolio state in memory for local bot runtime and paper execution flows.
+ * Stores paper-trading portfolio state for local bot runtime and execution flows.
  */
-public class InMemoryPortfolioService implements PortfolioService {
+public class PaperPortfolioService implements PortfolioService {
 
     private static final int MONEY_SCALE = 4;
     private static final int QUANTITY_SCALE = 8;
@@ -40,7 +40,6 @@ public class InMemoryPortfolioService implements PortfolioService {
             throw new IllegalArgumentException("openedAt must not be null.");
         }
 
-        PortfolioSnapshot currentSnapshot = getSnapshot(symbol);
         snapshots.put(symbol, new PortfolioSnapshot(
                 symbol,
                 BigDecimal.ZERO.setScale(MONEY_SCALE),

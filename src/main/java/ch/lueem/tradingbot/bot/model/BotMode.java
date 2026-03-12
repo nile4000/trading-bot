@@ -1,7 +1,7 @@
 package ch.lueem.tradingbot.bot.model;
 
 /**
- * Describes the execution mode of a bot runtime.
+ * Describes the trading execution reality used by backtest, paper and live flows.
  */
 public enum BotMode {
     BACKTEST,

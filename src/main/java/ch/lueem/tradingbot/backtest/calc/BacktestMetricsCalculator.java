@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.ZoneOffset;
 import java.util.List;
 
+import ch.lueem.tradingbot.bot.model.BotMode;
 import ch.lueem.tradingbot.backtest.model.BacktestMetadata;
 import ch.lueem.tradingbot.backtest.model.BacktestPositionReport;
 import ch.lueem.tradingbot.backtest.model.BacktestReport;
@@ -59,6 +60,7 @@ public class BacktestMetricsCalculator {
             String timeframe,
             StrategyDefinition strategyDefinition) {
         return new BacktestMetadata(
+                BotMode.BACKTEST,
                 symbol,
                 timeframe,
                 series.getBarCount(),

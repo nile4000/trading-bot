@@ -5,13 +5,13 @@ import java.util.Deque;
 import java.util.List;
 
 /**
- * Returns preconfigured signals from an in-memory queue for deterministic bot runtime cycles.
+ * Returns preconfigured signals from a deterministic queue for local bot runtime cycles.
  */
-public class InMemorySignalQueueEvaluator implements StrategySignalEvaluator {
+public class QueuedSignalEvaluator implements StrategySignalEvaluator {
 
     private final Deque<TradeSignal> signals;
 
-    public InMemorySignalQueueEvaluator(List<TradeSignal> signals) {
+    public QueuedSignalEvaluator(List<TradeSignal> signals) {
         if (signals == null || signals.isEmpty()) {
             throw new IllegalArgumentException("signals must not be null or empty.");
         }

@@ -8,6 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 
+import ch.lueem.tradingbot.application.BacktestRequest;
+import ch.lueem.tradingbot.backtest.model.BacktestPositionReport;
+import ch.lueem.tradingbot.backtest.model.BacktestReport;
+import ch.lueem.tradingbot.bot.model.BotMode;
+import ch.lueem.tradingbot.strategy.definition.StrategyDefinition;
+import ch.lueem.tradingbot.strategy.definition.StrategyParameters;
 import org.junit.jupiter.api.Test;
 
 class BacktestRunnerTest {
@@ -16,23 +22,32 @@ class BacktestRunnerTest {
     void run_exposesOpenPositionDetailsInReport() {
         BacktestRunner runner = new BacktestRunner();
 
-        BacktestReport report = runner.run(
-                Path.of("data/historical/BTCUSDT-1h.csv"),
+        Path csvPath = Path.of("data/historical/BTCUSDT-1h.csv");
+        StrategyDefinition strategy = new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
+        BacktestRequest request = new BacktestRequest(
+                csvPath,
                 "BTCUSDT",
                 "1h",
-                3,
-                7,
+                strategy,
                 10000.0);
 
-        assertTrue(report.openPosition());
-        assertEquals("BTCUSDT", report.market());
-        assertNotNull(report.entryPrice());
-        assertNotNull(report.quantity());
-        assertNotNull(report.openedAt());
-        assertTrue(report.entryPrice().signum() > 0);
-        assertTrue(report.quantity().signum() > 0);
-        assertFalse(report.openedAt().isBlank());
-        assertNull(report.stopLoss());
-        assertNull(report.takeProfit());
+        BacktestReport report = runner.run(request);
+        BacktestPositionReport openPosition = report.positions().getLast();
+
+        assertEquals(BotMode.BACKTEST, report.metadata().mode());
+        assertTrue(report.hasOpenPosition());
+        assertEquals("BTCUSDT", report.metadata().symbol());
+        assertNotNull(report.finalValue());
+        assertTrue(report.closedTradeCount() >= 0);
+        assertFalse(report.positions().isEmpty());
+        assertEquals("OPEN", openPosition.status());
+        assertNotNull(openPosition.entryPrice());
+        assertNotNull(openPosition.quantity());
+        assertNotNull(openPosition.entryTime());
+        assertTrue(openPosition.entryPrice().signum() > 0);
+        assertTrue(openPosition.quantity().signum() > 0);
+        assertFalse(openPosition.entryTime().isBlank());
+        assertNull(openPosition.exitTime());
+        assertNull(openPosition.exitPrice());
     }
 }
