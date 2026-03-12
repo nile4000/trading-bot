@@ -28,6 +28,9 @@ Nicht Teil dieser V1:
 - `App`: duennter Einstiegspunkt
 - `application`: Konfigurationsladen und Use-Case-Orchestrierung
 - `backtest`: CSV-Loading, Strategieausfuehrung und Kennzahlen
+- `bot`: Single-Bot-Runtime, Status, letzter Lauf und Tick-Ergebnisse
+- `execution`: Ausfuehrungsabstraktionen fuer Backtest, Paper und spaeter Live
+- `portfolio`: Positions- und Portfoliostand fuer laufende Bots
 - `reporting`: JSON-Rendering des `BacktestReport`
 - `strategy`: Strategieaufbau fuer ta4j
 
@@ -50,14 +53,14 @@ backtest:
   timeframe: 1h
   strategy:
     name: ema_cross
-    shortEma: 9
-    longEma: 21
+    shortEma: 3
+    longEma: 7
   portfolio:
     initialCash: 10000.0
 
 reporting:
   prettyPrint: true
-  includeNotes: true
+  includeNotes: false
 
 logging:
   lifecycleEvents: true
@@ -83,6 +86,16 @@ data/historical/BTCUSDT-1h.csv
 - Backtest-Ergebnisse werden als JSON auf `stdout` ausgegeben
 - Logging und Reporting sind bewusst getrennt
 - JSON ist fuer diese V1 der feste standard
+- Das aktuelle JSON-Schema wird als `reportVersion: "v2"` ausgegeben
+- Geld- und Prozentwerte werden als numerische JSON-Werte mit 4 Dezimalstellen ausgegeben
+- Zaehler bleiben Integer, Statuswerte bleiben Boolean
+- Positionsdetails werden immer mit ausgegeben; ohne offene Position stehen diese Felder auf `null`
+
+Wichtige Report-Felder:
+- `barCount`, `signalCount`, `tradeCount`: Integer
+- `openPosition`: Boolean
+- `entryPrice`, `quantity`, `market`, `stopLoss`, `takeProfit`, `openedAt`: Positionsdetails der aktuell offenen Position
+- `initialCash`, `finalValue`, `returnPct`, `winRatePct`: numerische Werte mit 4 Dezimalstellen
 
 ## Starten
 

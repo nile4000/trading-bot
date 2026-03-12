@@ -75,9 +75,9 @@ public class BacktestService {
         if (logging.lifecycleEvents()) {
             LOG.info(
                     "Backtest finished. bars={}, closedTrades={}, returnPct={}",
-                    report.barCount(),
+                    report.metadata().barCount(),
                     report.tradeCount(),
-                    "%.2f".formatted(report.returnPct()));
+                    report.returnPct());
         }
     }
 }
