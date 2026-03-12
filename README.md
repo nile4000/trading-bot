@@ -17,6 +17,20 @@ Nicht Teil dieser V1:
 - Health-Checks
 - Multi-Bot-Betrieb
 
+## Was Die App Aktuell Effektiv Ist
+
+- Ein einzelner Trading-Bot mit zwei Betriebsarten: `BACKTEST` und `PAPER`
+- `BACKTEST` ist heute der fachlich staerkere Pfad: CSV rein, `ema_cross` ueber `ta4j`, simulierte Ausfuehrung, JSON-Report raus
+- `PAPER` ist heute ein technischer Testpfad: Binance Spot Testnet Preis rein, vorkonfigurierte `queued_actions`, `orderTest` validieren, lokales Paper-Portfolio fortschreiben
+- `ta4j` ist aktuell Strategy-/Indikator-Schicht fuer den Backtest, nicht die Runtime, nicht das Reporting und nicht der Paper-Bot
+- Die App ist damit heute eher ein kleiner Backtest-Bot plus technischer Paper-Execution-Testpfad als eine voll ausgebaute allgemeine Trading-Plattform
+
+Aktuelle Ausbau-Richtung:
+
+- weitere Strategien und Indikatoren zuerst im `BACKTEST`
+- `PAPER` spaeter optional von `queued_actions` zu echter Strategieauswertung weiterentwickeln
+- Reporting vorerst im eigenen App-Modell halten
+
 ## Voraussetzungen
 
 - JDK 21
