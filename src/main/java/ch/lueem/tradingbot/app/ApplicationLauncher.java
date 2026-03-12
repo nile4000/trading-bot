@@ -7,7 +7,7 @@ import ch.lueem.tradingbot.modes.backtest.BacktestService;
 import ch.lueem.tradingbot.modes.paper.PaperBotService;
 
 /**
- * Dispatches the loaded application configuration to the matching entry flow.
+ * Selects the matching entry flow for the loaded application configuration.
  */
 public class ApplicationLauncher {
 

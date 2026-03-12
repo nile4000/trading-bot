@@ -21,21 +21,21 @@ public class BacktestRunner {
 
     private final CsvBarSeriesLoader csvBarSeriesLoader;
     private final HistoricalRuntimeRunner historicalRuntimeRunner;
-    private final BacktestReportBuilder reportBuilder;
+    private final ReportGenerator reportGenerator;
     private final Ta4jStrategyFactory strategyFactory;
 
     public BacktestRunner() {
-        this(new CsvBarSeriesLoader(), new HistoricalRuntimeRunner(), new BacktestReportBuilder(), new Ta4jStrategyFactory());
+        this(new CsvBarSeriesLoader(), new HistoricalRuntimeRunner(), new ReportGenerator(), new Ta4jStrategyFactory());
     }
 
     public BacktestRunner(
             CsvBarSeriesLoader csvBarSeriesLoader,
             HistoricalRuntimeRunner historicalRuntimeRunner,
-            BacktestReportBuilder reportBuilder,
+            ReportGenerator reportGenerator,
             Ta4jStrategyFactory strategyFactory) {
         this.csvBarSeriesLoader = csvBarSeriesLoader;
         this.historicalRuntimeRunner = historicalRuntimeRunner;
-        this.reportBuilder = reportBuilder;
+        this.reportGenerator = reportGenerator;
         this.strategyFactory = strategyFactory;
     }
 
@@ -51,7 +51,7 @@ public class BacktestRunner {
                 portfolioService,
                 createStrategyEvaluator(config, series));
 
-        return reportBuilder.assemble(
+        return reportGenerator.assemble(
                 config,
                 historicalRuntimeRunner.run(runtime, marketSnapshotProvider.snapshotCount()));
     }

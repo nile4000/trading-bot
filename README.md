@@ -24,9 +24,9 @@ Nicht Teil dieser V1:
 
 ## Architektur
 
-- `app`: schlanker Einstiegspunkt und Modus-Dispatch
+- `app`: schlanker Einstiegspunkt und Moduswahl
 - `core`: modusunabhaengige Trading-Logik und Ports
-- `modes.backtest`: historischer Ablauf, Runtime-Ausfuehrung und fachlicher Backtest-Report
+- `modes.backtest`: historischer Ablauf, Runtime-Ausfuehrung und fachliche Reportgenerierung
 - `modes.paper`: technischer Paper-Flow, Runtime-Wiring und Runner-Loop
 - `adapters.config`: YAML-Loading und typed Config-Records
 - `adapters.market`: CSV- und Marktpreis-Adapter

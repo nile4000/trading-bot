@@ -14,9 +14,9 @@ import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 
 /**
- * Builds the backtest report from shared runtime cycle results.
+ * Generates the backtest report from shared runtime cycle results.
  */
-public class BacktestReportBuilder {
+public class ReportGenerator {
 
     private static final String EXECUTION_MODEL = "action_bar_close";
     private static final String POSITION_SIZING_MODEL = "all_in_spot";
