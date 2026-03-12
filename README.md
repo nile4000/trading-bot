@@ -4,11 +4,19 @@ Kleines Java-21-Maven-Projekt fuer lokales Backtesting mit `ta4j`.
 
 ## Aktueller Stand
 
-- Phase 1: nur lokales Backtesting
+- V1 fuer Phase 1: nur lokales Backtesting
 - CSV-basierter Datenimport fuer OHLCV-Bars
 - EMA-Cross-Strategie
-- JSON-Report als Ergebnisformat
+- JSON ist das feste Ergebnisformat
 - Logback fuer technische Laufzeit-Logs
+
+Nicht Teil dieser V1:
+
+- Live-Trading
+- Scheduling
+- REST/API
+- Health-Checks
+- Multi-Bot-Betrieb
 
 ## Voraussetzungen
 
@@ -28,6 +36,7 @@ Kleines Java-21-Maven-Projekt fuer lokales Backtesting mit `ta4j`.
 Die Standardkonfiguration liegt in [application.yml](c:/dev/trading/apps/trading-bot/src/main/resources/application.yml).
 
 Aktuelle Bereiche:
+
 - `backtest`
 - `reporting`
 - `logging`
@@ -47,7 +56,6 @@ backtest:
     initialCash: 10000.0
 
 reporting:
-  format: json
   prettyPrint: true
   includeNotes: true
 
@@ -74,6 +82,7 @@ data/historical/BTCUSDT-1h.csv
 - Technische Logs laufen ueber Logback
 - Backtest-Ergebnisse werden als JSON auf `stdout` ausgegeben
 - Logging und Reporting sind bewusst getrennt
+- JSON ist fuer diese V1 der feste standard
 
 ## Starten
 

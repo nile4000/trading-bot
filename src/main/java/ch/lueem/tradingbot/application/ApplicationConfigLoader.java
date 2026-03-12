@@ -49,12 +49,5 @@ public class ApplicationConfigLoader {
             throw new IllegalStateException("Missing 'logging' section in application.yml.");
         }
         config.backtest().toRequest();
-        validateReportingConfig(config.reporting());
-    }
-
-    private void validateReportingConfig(ReportingConfig reporting) {
-        if (reporting.format() == null || reporting.format().isBlank()) {
-            throw new IllegalStateException("reporting.format must not be blank.");
-        }
     }
 }

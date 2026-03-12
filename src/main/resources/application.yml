@@ -10,7 +10,6 @@ backtest:
     initialCash: 10000.0
 
 reporting:
-  format: json
   prettyPrint: true
   includeNotes: true
 

@@ -19,7 +19,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 public class BacktestReportJsonPrinter {
 
     private static final String REPORT_VERSION = "v1";
-    private static final String JSON_FORMAT = "json";
+    private final ObjectMapper prettyObjectMapper;
+    private final ObjectMapper compactObjectMapper;
+
+    public BacktestReportJsonPrinter() {
+        this.prettyObjectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        this.compactObjectMapper = new ObjectMapper();
+    }
 
     public void print(
             PrintStream out,
@@ -37,9 +43,6 @@ public class BacktestReportJsonPrinter {
         }
         if (report == null) {
             throw new IllegalArgumentException("report must not be null.");
-        }
-        if (!JSON_FORMAT.equalsIgnoreCase(reporting.format())) {
-            throw new IllegalArgumentException("Unsupported reporting.format: " + reporting.format());
         }
 
         BacktestReportDocument document = new BacktestReportDocument(
@@ -71,18 +74,14 @@ public class BacktestReportJsonPrinter {
 
     private String toJson(BacktestReportDocument document, ReportingConfig reporting) {
         try {
-            return createObjectMapper(reporting.prettyPrint()).writeValueAsString(document);
+            return selectObjectMapper(reporting.prettyPrint()).writeValueAsString(document);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to render backtest report as JSON.", exception);
         }
     }
 
-    private ObjectMapper createObjectMapper(boolean prettyPrint) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        if (prettyPrint) {
-            objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        }
-        return objectMapper;
+    private ObjectMapper selectObjectMapper(boolean prettyPrint) {
+        return prettyPrint ? prettyObjectMapper : compactObjectMapper;
     }
 
     private record BacktestReportDocument(
