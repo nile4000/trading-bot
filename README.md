@@ -4,7 +4,7 @@ Kleines Java-21-Maven-Projekt fuer Backtesting und einen technischen Paper-Testn
 
 ## Aktueller Stand
 
-- V1 fuer Phase 1/Phase 2: Backtesting plus technischer `PAPER`-Integrationspfad
+- V1: Backtesting plus technischer `PAPER`-Pfad
 - CSV-basierter Datenimport fuer OHLCV-Bars
 - EMA-Cross-Strategie
 - JSON ist das feste Ergebnisformat
@@ -24,22 +24,62 @@ Nicht Teil dieser V1:
 
 ## Architektur
 
-- `App`: Einstiegspunkt
-- `application`: Konfigurationsladen, Launcher, Paper-Bootstrap und Use-Case-Orchestrierung
-- `backtest`: CSV-Loading, Strategieausfuehrung und Kennzahlen
-- `bot`: Single-Bot-Runtime, Status, letzter Lauf und Tick-Ergebnisse
-- `execution`: mode-neutrale Ausfuehrungsabstraktionen
-- `integration`: modusspezifische Infrastruktur fuer Backtest-nahe und Exchange-nahe Pfade
-- `portfolio`: mode-neutrale Positions- und Portfolio-Modelle
-- `reporting`: JSON-Rendering des `BacktestReport`
-- `strategy`: Strategieaufbau fuer ta4j
-- modusspezifische Adapter liegen bewusst unter `integration/*`
+- `app`: schlanker Einstiegspunkt und Modus-Dispatch
+- `core`: modusunabhaengige Trading-Logik und Ports
+- `modes.backtest`: historischer Ablauf, Runtime-Ausfuehrung und fachlicher Backtest-Report
+- `modes.paper`: technischer Paper-Flow, Runtime-Wiring und Runner-Loop
+- `adapters.config`: YAML-Loading und typed Config-Records
+- `adapters.market`: CSV- und Marktpreis-Adapter
+- `adapters.execution`: simulierte und Exchange-nahe Ausfuehrung
+- `adapters.portfolio`: konkrete Portfolio-Implementierungen
+- `adapters.reporting`: JSON-Rendering des `BacktestReport`
+
+ta4j-Entscheidung:
+
+- `ta4j` wird fuer Strategie- und Indikatorlogik im `BACKTEST` genutzt.
+- Reporting bleibt vorerst im eigenen Backtest-Modell.
+- Grund: Das Reportformat ist app-spezifisch und basiert auf den eigenen Simulationsannahmen wie `action_bar_close`, `all_in_spot` und Mark-to-Market fuer offene Positionen.
+- Ein ta4j-basierter Reporting-Pfad wird erst relevant, wenn mehrere Strategien systematisch verglichen oder weitere Standardmetriken benoetigt werden.
+
+Kurzmodell:
+
+- `core` kennt keine `modes` oder `adapters`
+- `modes` orchestrieren Use-Cases
+- `adapters` sprechen Datei, YAML, JSON oder externe APIs
+
+Aktuelle Hauptverzeichnisse:
+
+```text
+src/main/java/ch/lueem/tradingbot
+|- app
+|- core
+|  |- execution
+|  |- portfolio
+|  |- runtime
+|  `- strategy
+|- modes
+|  |- backtest
+|  `- paper
+`- adapters
+   |- config
+   |- execution
+   |- market
+   |- portfolio
+   `- reporting
+```
+
+## Guard-Regeln
+
+- Guards bleiben an echten Aussenraendern: YAML-Loading, CSV-Parsing, Binance-Adapter, JSON-Rendering.
+- Guards bleiben fuer fachliche Invarianten: ungueltige Config, Symbol-/Timeframe-Mismatch, ungueltige Portfolio-Zustaende.
+- Guards in internen Orchestrierungs- und Wiring-Klassen werden sparsam gehalten.
+- Konstruktor-Nullchecks in `app` und `modes` sind optional und werden nicht reflexartig eingebaut.
+- Wenn ein Fehler bereits durch vorgelagerte Config- oder Adapter-Validierung klar abgefangen wird, wird derselbe Guard nicht nochmal in jeder internen Methode wiederholt.
 
 ## Ausfuehrungsmodi
 
 - `BACKTEST`: historische Simulation gegen CSV- oder andere historische Datensaetze
 - `PAPER`: live oder nahe Echtzeit gegen Demo-/Testumgebung ohne echtes Kapital
-- `LIVE`: Ausfuehrung gegen die produktive Exchange-API mit echtem Kapital
 - Deployment-Ort wie lokal, Server oder Container ist davon getrennt und kein Trading-Modus
 
 ## Konfiguration
@@ -125,14 +165,16 @@ data/historical/BTCUSDT-1h.csv
 - Backtest-Ergebnisse werden als JSON auf `stdout` ausgegeben
 - Logging und Reporting sind bewusst getrennt
 - JSON ist fuer diese V1 der feste standard
-- `PAPER` in Phase 1 nutzt Binance Spot Testnet REST, sendet signierte `orderTest`-Requests und fuehrt keine lokalen Positionsaenderungen aus
+- `PAPER` nutzt Binance Spot Testnet REST, validiert `orderTest`-Requests und spiegelt validierte Orders in das lokale Paper-Portfolio
 - Das aktuelle JSON-Schema wird als `reportVersion: "v3"` ausgegeben
 - Backtest-Reports enthalten `metadata.mode: "BACKTEST"` als explizite Ausfuehrungsrealitaet
 - Geld- und Prozentwerte werden als numerische JSON-Werte mit 4 Dezimalstellen ausgegeben
 - Zaehler bleiben Integer, Statuswerte bleiben Boolean
 - Positionsdetails werden immer mit ausgegeben; offene Positionen haben `exitTime` und `exitPrice` auf `null`
+- `action_bar_close` bedeutet, dass die Ausfuehrung auf dem Close der Action-Bar simuliert wird
 
 Wichtige Report-Felder:
+
 - `barCount`, `executedSignalCount`, `closedTradeCount`: Integer
 - `hasOpenPosition`: Boolean
 - `entryPrice`, `exitPrice`, `quantity`, `profitLoss`, `profitLossPercent`: Positionsdetails pro Position

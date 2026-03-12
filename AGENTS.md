@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- This project is a small Java 21 Maven application for local strategy backtesting.
+- This project is a small Java 21 Maven application for backtesting and a technical paper-trading path.
 - Prefer simple, readable code over generic abstractions.
 - Keep runtime concerns, use-case orchestration, reporting, and strategy logic separated.
 
@@ -10,7 +10,7 @@
 
 - Application defaults live in `src/main/resources/application.yml`.
 - Group configuration by concern: `backtest`, `reporting`, `logging`.
-- Keep configuration classes small, typed, and close to the application layer.
+- Keep configuration classes small, typed, and under `adapters.config`.
 - If a new setting affects behavior, prefer adding it to YAML and mapping it explicitly.
 
 ## Logging And Reporting
@@ -29,10 +29,11 @@
 ## Application Structure
 
 - `App` should stay a thin entry point.
-- Use application-layer services for end-to-end orchestration.
-- Keep backtest calculation in dedicated backtest classes.
-- Keep output formatting in reporting classes.
-- Keep strategy definition, bot runtime state, execution, and portfolio state in separate models.
+- Structure the app as `app`, `core`, `modes`, and `adapters`.
+- Keep `core` free of dependencies on `modes` and `adapters`.
+- Keep end-to-end orchestration in `modes.backtest` and `modes.paper`.
+- Keep output formatting in `adapters.reporting`.
+- Keep strategy definition, runtime, execution, and portfolio concerns in separate core packages.
 - Prefer top-level records for domain, config, runtime-state, and cross-layer transport models.
 - Avoid extracting one-field local helper records when a simple primitive or existing model keeps the code clearer.
 - Prefer role-based class names over storage-detail names like `InMemory` unless the storage mechanism is the main distinction.
@@ -42,15 +43,16 @@
 - Backtest reports should include simulation metadata and position-level details.
 - Backtest metadata should include the shared execution mode and use `BACKTEST` for historical runs.
 - Keep simulation assumptions explicit in metadata, especially `executionModel` and `positionSizingModel`.
-- `signal_bar_close` means the fill is simulated on the close of the signal bar.
+- `action_bar_close` means the fill is simulated on the close of the action bar.
 - `all_in_spot` means the full available cash balance is allocated on entry and fully closed on exit.
 - Prefer position reports over raw trade logs when exposing backtest details.
+- Use `ta4j` for strategy and indicator logic in `BACKTEST`, not as the primary reporting model.
+- Keep backtest reporting in the app-specific report layer unless multiple strategies or additional standard metrics justify a ta4j-based analysis layer.
 
 ## Bot And Strategy Models
 
-- Use `BACKTEST | PAPER | LIVE` as the canonical execution-mode vocabulary across bot runtime, backtest reporting, and future APIs.
+- Use `BACKTEST | PAPER` as the current execution-mode vocabulary across runtime and backtest reporting.
 - Do not use `LOCAL` as a primary trading mode; it is a deployment concern, not an execution reality.
-- Bot runtime state should stay operational and minimal: `botId`, `botVersion`, `mode`, `status`, `lastRunAt`, `lastSuccessAt`, `lastError`, `openPosition`.
 - Strategy-facing identifiers should stay separate from bot runtime state.
 - Strategy definitions should carry `symbol`, `timeframe`, `strategyName`, and typed strategy parameters.
 - The manager layer is for bot health and coordination, not for portfolio calculation or strategy evaluation.
@@ -65,6 +67,9 @@
 
 - Error messages must tell the user what failed and, when useful, which file, row, or parameter caused it.
 - Wrap lower-level exceptions only when the wrapper adds context.
+- Keep guards at system boundaries and on domain invariants.
+- Avoid repetitive null-check boilerplate in internal orchestration and wiring classes.
+- Do not duplicate guards that are already guaranteed by earlier config validation or adapter validation unless the later check adds new domain context.
 
 ## Linting And Build Hygiene
 
@@ -74,8 +79,8 @@
 
 ## Testing
 
-- No test classes are required yet.
-- Still write production code so logic can be tested later without major refactoring.
+- Keep production code testable and extend tests when behavior or structure changes.
+- Preserve green Maven compile and test runs after non-trivial refactors.
 
 ## Current Commands
 
