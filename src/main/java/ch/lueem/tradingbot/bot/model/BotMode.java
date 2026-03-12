@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.bot;
+package ch.lueem.tradingbot.bot.model;
 
 /**
  * Describes the execution mode of a bot runtime.

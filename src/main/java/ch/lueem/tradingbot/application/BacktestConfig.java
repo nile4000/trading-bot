@@ -2,6 +2,8 @@ package ch.lueem.tradingbot.application;
 
 import java.nio.file.Path;
 
+import ch.lueem.tradingbot.strategy.definition.StrategyDefinition;
+
 /**
  * Holds the configured backtest input for one application run.
  */
@@ -9,18 +11,16 @@ public record BacktestConfig(
         Path csvPath,
         String symbol,
         String timeframe,
-        StrategyConfig strategy,
+        StrategyDefinition strategy,
         PortfolioConfig portfolio
 ) {
     public BacktestRequest toRequest() {
         validate();
         return new BacktestRequest(
                 csvPath,
-                strategy.name(),
                 symbol,
                 timeframe,
-                strategy.shortEma(),
-                strategy.longEma(),
+                strategy,
                 portfolio.initialCash());
     }
 

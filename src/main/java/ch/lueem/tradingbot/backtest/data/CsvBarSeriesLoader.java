@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.backtest;
+package ch.lueem.tradingbot.backtest.data;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

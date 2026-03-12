@@ -1,4 +1,4 @@
 /**
- * Single-bot runtime state and periodic bot execution.
+ * Single-bot runtime packages.
  */
 package ch.lueem.tradingbot.bot;

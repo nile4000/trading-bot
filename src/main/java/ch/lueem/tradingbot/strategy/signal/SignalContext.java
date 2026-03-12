@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.strategy;
+package ch.lueem.tradingbot.strategy.signal;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;

@@ -4,8 +4,9 @@ backtest:
   timeframe: 1h
   strategy:
     name: ema_cross
-    shortEma: 3
-    longEma: 7
+    parameters:
+      shortEma: 3
+      longEma: 7
   portfolio:
     initialCash: 10000.0
 

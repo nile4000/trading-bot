@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.backtest;
+package ch.lueem.tradingbot.backtest.model;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -8,13 +8,13 @@ import java.util.List;
  */
 public record BacktestReport(
         BacktestMetadata metadata,
-        int signalCount,
-        int tradeCount,
-        boolean openPosition,
+        int executedSignalCount,
+        int closedTradeCount,
+        boolean hasOpenPosition,
         BigDecimal initialCash,
         BigDecimal finalValue,
-        BigDecimal returnPct,
-        BigDecimal winRatePct,
+        BigDecimal totalReturnPercent,
+        BigDecimal winRatePercent,
         List<BacktestPositionReport> positions
 ) {
 }

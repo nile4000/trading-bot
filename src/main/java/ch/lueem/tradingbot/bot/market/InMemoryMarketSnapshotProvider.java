@@ -1,8 +1,10 @@
-package ch.lueem.tradingbot.bot;
+package ch.lueem.tradingbot.bot.market;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+
+import ch.lueem.tradingbot.bot.model.BotDefinition;
 
 /**
  * Provides market snapshots from an in-memory queue for deterministic bot runtime cycles.

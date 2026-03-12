@@ -1,4 +1,4 @@
 /**
- * Historical backtesting, CSV loading and result calculation.
+ * Historical backtesting packages.
  */
 package ch.lueem.tradingbot.backtest;

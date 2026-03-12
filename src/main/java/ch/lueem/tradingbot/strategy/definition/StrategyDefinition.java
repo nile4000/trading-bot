@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.strategy;
+package ch.lueem.tradingbot.strategy.definition;
 
 /**
  * Describes one strategy together with its concrete parameter set.

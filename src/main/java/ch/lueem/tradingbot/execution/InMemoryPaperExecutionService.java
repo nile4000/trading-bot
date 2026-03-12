@@ -6,7 +6,7 @@ import java.math.RoundingMode;
 import ch.lueem.tradingbot.portfolio.InMemoryPortfolioService;
 import ch.lueem.tradingbot.portfolio.PortfolioSnapshot;
 import ch.lueem.tradingbot.portfolio.PositionSnapshot;
-import ch.lueem.tradingbot.strategy.TradeSignal;
+import ch.lueem.tradingbot.strategy.signal.TradeSignal;
 
 /**
  * Simulates paper-trading executions in memory without talking to a real exchange.

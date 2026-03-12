@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.backtest;
+package ch.lueem.tradingbot.backtest.model;
 
 import java.math.BigDecimal;
 
@@ -13,7 +13,7 @@ public record BacktestPositionReport(
         String exitTime,
         BigDecimal exitPrice,
         BigDecimal quantity,
-        BigDecimal pnl,
-        BigDecimal pnlPct
+        BigDecimal profitLoss,
+        BigDecimal profitLossPercent
 ) {
 }

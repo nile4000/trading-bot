@@ -10,8 +10,8 @@ public record PositionSnapshot(
         boolean open,
         BigDecimal quantity,
         BigDecimal entryPrice,
-        OffsetDateTime openedAt
-) {
+        OffsetDateTime openedAt) {
+            
     public static PositionSnapshot flat() {
         return new PositionSnapshot(false, null, null, null);
     }

@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.strategy;
+package ch.lueem.tradingbot.strategy.ta4j;
 
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseStrategy;

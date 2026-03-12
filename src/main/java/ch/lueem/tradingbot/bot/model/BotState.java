@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.bot;
+package ch.lueem.tradingbot.bot.model;
 
 import java.time.OffsetDateTime;
 

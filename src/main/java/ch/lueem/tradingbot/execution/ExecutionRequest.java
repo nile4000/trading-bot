@@ -3,7 +3,7 @@ package ch.lueem.tradingbot.execution;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-import ch.lueem.tradingbot.strategy.TradeSignal;
+import ch.lueem.tradingbot.strategy.signal.TradeSignal;
 
 /**
  * Describes one execution request created by a bot cycle.

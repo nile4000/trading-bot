@@ -2,8 +2,8 @@ package ch.lueem.tradingbot.application;
 
 import java.io.PrintStream;
 
-import ch.lueem.tradingbot.backtest.BacktestReport;
 import ch.lueem.tradingbot.backtest.BacktestRunner;
+import ch.lueem.tradingbot.backtest.model.BacktestReport;
 import ch.lueem.tradingbot.reporting.BacktestReportJsonPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +34,7 @@ public class BacktestService {
 
         logLifecycleStart(config.logging(), request);
 
-        BacktestReport report = backtestRunner.run(
-                request.csvPath(),
-                request.symbol(),
-                request.timeframe(),
-                request.shortEma(),
-                request.longEma(),
-                request.initialCash());
+        BacktestReport report = backtestRunner.run(request);
 
         logLifecycleFinish(config.logging(), report);
 
@@ -74,10 +68,10 @@ public class BacktestService {
     private void logLifecycleFinish(LoggingConfig logging, BacktestReport report) {
         if (logging.lifecycleEvents()) {
             LOG.info(
-                    "Backtest finished. bars={}, closedTrades={}, returnPct={}",
+                    "Backtest finished. barCount={}, closedTradeCount={}, totalReturnPercent={}",
                     report.metadata().barCount(),
-                    report.tradeCount(),
-                    report.returnPct());
+                    report.closedTradeCount(),
+                    report.totalReturnPercent());
         }
     }
 }

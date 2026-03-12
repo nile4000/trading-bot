@@ -86,16 +86,16 @@ data/historical/BTCUSDT-1h.csv
 - Backtest-Ergebnisse werden als JSON auf `stdout` ausgegeben
 - Logging und Reporting sind bewusst getrennt
 - JSON ist fuer diese V1 der feste standard
-- Das aktuelle JSON-Schema wird als `reportVersion: "v2"` ausgegeben
+- Das aktuelle JSON-Schema wird als `reportVersion: "v3"` ausgegeben
 - Geld- und Prozentwerte werden als numerische JSON-Werte mit 4 Dezimalstellen ausgegeben
 - Zaehler bleiben Integer, Statuswerte bleiben Boolean
-- Positionsdetails werden immer mit ausgegeben; ohne offene Position stehen diese Felder auf `null`
+- Positionsdetails werden immer mit ausgegeben; offene Positionen haben `exitTime` und `exitPrice` auf `null`
 
 Wichtige Report-Felder:
-- `barCount`, `signalCount`, `tradeCount`: Integer
-- `openPosition`: Boolean
-- `entryPrice`, `quantity`, `market`, `stopLoss`, `takeProfit`, `openedAt`: Positionsdetails der aktuell offenen Position
-- `initialCash`, `finalValue`, `returnPct`, `winRatePct`: numerische Werte mit 4 Dezimalstellen
+- `barCount`, `executedSignalCount`, `closedTradeCount`: Integer
+- `hasOpenPosition`: Boolean
+- `entryPrice`, `exitPrice`, `quantity`, `profitLoss`, `profitLossPercent`: Positionsdetails pro Position
+- `initialCash`, `finalValue`, `totalReturnPercent`, `winRatePercent`: numerische Werte mit 4 Dezimalstellen
 
 ## Starten
 

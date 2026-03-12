@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.bot;
+package ch.lueem.tradingbot.bot.model;
 
 /**
  * Holds the stable identity and market scope of one bot runtime.
