@@ -27,6 +27,28 @@ class Ta4jStrategyFactoryTest {
     }
 
     @Test
+    void create_buildsTa4jEvaluatorForSmaCross() {
+        Ta4jStrategyFactory factory = new Ta4jStrategyFactory();
+
+        StrategyActionEvaluator evaluator = factory.create(
+                new StrategyDefinition("sma_cross", new StrategyParameters(3, 7)),
+                series());
+
+        assertInstanceOf(Ta4jStrategyActionEvaluator.class, evaluator);
+    }
+
+    @Test
+    void create_buildsTa4jEvaluatorForRsiReversion() {
+        Ta4jStrategyFactory factory = new Ta4jStrategyFactory();
+
+        StrategyActionEvaluator evaluator = factory.create(
+                new StrategyDefinition("rsi_reversion", StrategyParameters.rsiReversion(5, 30, 70)),
+                series());
+
+        assertInstanceOf(Ta4jStrategyActionEvaluator.class, evaluator);
+    }
+
+    @Test
     void create_rejectsUnknownStrategyName() {
         Ta4jStrategyFactory factory = new Ta4jStrategyFactory();
 

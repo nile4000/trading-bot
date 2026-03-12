@@ -71,6 +71,12 @@ Kurzmodell:
 
 Die Standardkonfiguration liegt in [application.yml](c:/dev/trading/apps/trading-bot/src/main/resources/application.yml).
 
+Aktuell unterstuetzte Backtest-Strategien:
+
+- `ema_cross`
+- `sma_cross`
+- `rsi_reversion`
+
 ## CSV-Format
 
 Erwarteter Header:
@@ -92,7 +98,7 @@ data/historical/BTCUSDT-1h.csv
 - Logging und Reporting sind bewusst getrennt
 - JSON ist fuer diese V1 der feste standard
 - `PAPER` nutzt Binance Spot Testnet REST, validiert `orderTest`-Requests und spiegelt validierte Orders in das lokale Paper-Portfolio
-- Das aktuelle JSON-Schema wird als `reportVersion: "v3"` ausgegeben
+- Das aktuelle JSON-Schema wird als `reportVersion: "v4"` ausgegeben
 - Backtest-Reports enthalten `metadata.mode: "BACKTEST"` als explizite Ausfuehrungsrealitaet
 - Geld- und Prozentwerte werden als numerische JSON-Werte mit 4 Dezimalstellen ausgegeben
 - Zaehler bleiben Integer, Statuswerte bleiben Boolean

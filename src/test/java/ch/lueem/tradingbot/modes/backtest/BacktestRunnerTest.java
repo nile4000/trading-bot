@@ -51,4 +51,32 @@ class BacktestRunnerTest {
         assertNull(openPosition.exitTime());
         assertNull(openPosition.exitPrice());
     }
+
+    @Test
+    void run_supportsSmaCrossStrategy() {
+        BacktestRunner runner = new BacktestRunner();
+
+        BacktestReport report = runner.run(new BacktestConfig(
+                Path.of("data/historical/BTCUSDT-1h.csv"),
+                "BTCUSDT",
+                "1h",
+                new StrategyDefinition("sma_cross", new StrategyParameters(3, 7)),
+                new PortfolioConfig(10000.0)));
+
+        assertEquals("sma_cross", report.metadata().strategy().name());
+    }
+
+    @Test
+    void run_supportsRsiReversionStrategy() {
+        BacktestRunner runner = new BacktestRunner();
+
+        BacktestReport report = runner.run(new BacktestConfig(
+                Path.of("data/historical/BTCUSDT-1h.csv"),
+                "BTCUSDT",
+                "1h",
+                new StrategyDefinition("rsi_reversion", StrategyParameters.rsiReversion(5, 30, 70)),
+                new PortfolioConfig(10000.0)));
+
+        assertEquals("rsi_reversion", report.metadata().strategy().name());
+    }
 }

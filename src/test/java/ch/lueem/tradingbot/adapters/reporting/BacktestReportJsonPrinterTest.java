@@ -77,9 +77,12 @@ class BacktestReportJsonPrinterTest {
         JsonNode positions = root.get("positions");
         JsonNode notes = root.get("notes");
 
-        assertEquals("v3", root.get("reportVersion").asText());
+        assertEquals("v4", root.get("reportVersion").asText());
         assertEquals("BTCUSDT", metadata.get("symbol").asText());
         assertEquals("action_bar_close", metadata.get("executionModel").asText());
+        assertEquals("ema_cross", root.get("strategy").get("name").asText());
+        assertEquals(3, root.get("strategy").get("parameters").get("shortEma").asInt());
+        assertEquals(7, root.get("strategy").get("parameters").get("longEma").asInt());
         assertTrue(performance.get("hasOpenPosition").asBoolean());
         assertEquals(1, positions.size());
         assertEquals("OPEN", positions.get(0).get("status").asText());

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  */
 public class BacktestReportJsonPrinter {
 
-    private static final String REPORT_VERSION = "v3";
+    private static final String REPORT_VERSION = "v4";
     private final ObjectMapper prettyObjectMapper;
     private final ObjectMapper compactObjectMapper;
 
@@ -109,8 +109,7 @@ public class BacktestReportJsonPrinter {
     private BacktestStrategySection buildStrategySection(BacktestReport report) {
         return new BacktestStrategySection(
                 report.metadata().strategy().name(),
-                report.metadata().strategy().parameters().shortEma(),
-                report.metadata().strategy().parameters().longEma());
+                report.metadata().strategy().parameters());
     }
 
     private BacktestPerformanceSection buildPerformanceSection(BacktestReport report) {
