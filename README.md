@@ -1,13 +1,13 @@
 # trading-bot
 
-Kleines Java-21-Maven-Projekt fuer Backtesting und einen technischen Paper-Testnet-Pfad.
+Java-21-Maven-Projekt fuer Backtesting und einen technischen Paper-Testnet-Pfad.
 
 ## Aktueller Stand
 
 - V1: Backtesting plus technischer `PAPER`-Pfad
 - CSV-basierter Datenimport fuer OHLCV-Bars
-- EMA-Cross-Strategie
-- JSON ist das feste Ergebnisformat
+- Erste Strategie im `BACKTEST`
+- JSON als Backtest-Ausgabeformat
 - Logback fuer technische Laufzeit-Logs
 - Anwendungsmodi sind `BACKTEST | PAPER`
 
@@ -61,35 +61,6 @@ Kurzmodell:
 - `modes` orchestrieren Use-Cases
 - `adapters` sprechen Datei, YAML, JSON oder externe APIs
 
-Aktuelle Hauptverzeichnisse:
-
-```text
-src/main/java/ch/lueem/tradingbot
-|- app
-|- core
-|  |- execution
-|  |- portfolio
-|  |- runtime
-|  `- strategy
-|- modes
-|  |- backtest
-|  `- paper
-`- adapters
-   |- config
-   |- execution
-   |- market
-   |- portfolio
-   `- reporting
-```
-
-## Guard-Regeln
-
-- Guards bleiben an echten Aussenraendern: YAML-Loading, CSV-Parsing, Binance-Adapter, JSON-Rendering.
-- Guards bleiben fuer fachliche Invarianten: ungueltige Config, Symbol-/Timeframe-Mismatch, ungueltige Portfolio-Zustaende.
-- Guards in internen Orchestrierungs- und Wiring-Klassen werden sparsam gehalten.
-- Konstruktor-Nullchecks in `app` und `modes` sind optional und werden nicht reflexartig eingebaut.
-- Wenn ein Fehler bereits durch vorgelagerte Config- oder Adapter-Validierung klar abgefangen wird, wird derselbe Guard nicht nochmal in jeder internen Methode wiederholt.
-
 ## Ausfuehrungsmodi
 
 - `BACKTEST`: historische Simulation gegen CSV- oder andere historische Datensaetze
@@ -99,65 +70,6 @@ src/main/java/ch/lueem/tradingbot
 ## Konfiguration
 
 Die Standardkonfiguration liegt in [application.yml](c:/dev/trading/apps/trading-bot/src/main/resources/application.yml).
-
-Aktuelle Bereiche:
-
-- `mode`
-- `backtest`
-- `paper.bot`
-- `paper.execution`
-- `paper.actionSource`
-- `paper.binance`
-- `reporting`
-- `logging`
-
-Beispiel:
-
-```yaml
-mode: BACKTEST
-
-backtest:
-  csvPath: data/historical/BTCUSDT-1h.csv
-  symbol: BTCUSDT
-  timeframe: 1h
-  strategy:
-    name: ema_cross
-    parameters:
-      shortEma: 3
-      longEma: 7
-  portfolio:
-    initialCash: 10000.0
-
-paper:
-  bot:
-    botId: btcusdt-paper-testnet
-    botVersion: v1
-    symbol: BTCUSDT
-    timeframe: 1m
-  execution:
-    exchange: BINANCE_SPOT_TESTNET
-    orderMode: VALIDATE_ONLY
-    tickIntervalMillis: 10000
-    initialCash: 1000.0
-    orderQuantity: 0.0001
-  actionSource:
-    strategyName: queued_actions
-    actions:
-      - BUY
-      - HOLD
-      - SELL
-  binance:
-    apiKeyEnv: BINANCE_TESTNET_API_KEY
-    secretKeyEnv: BINANCE_TESTNET_SECRET_KEY
-    recvWindowMillis: 15000
-
-reporting:
-  prettyPrint: true
-  includeNotes: false
-
-logging:
-  lifecycleEvents: true
-```
 
 ## CSV-Format
 
@@ -194,7 +106,7 @@ Wichtige Report-Felder:
 - `entryPrice`, `exitPrice`, `quantity`, `profitLoss`, `profitLossPercent`: Positionsdetails pro Position
 - `initialCash`, `finalValue`, `totalReturnPercent`, `winRatePercent`: numerische Werte mit 4 Dezimalstellen
 
-## Starten
+## Lokal Starten
 
 ```bash
 mvn clean compile
