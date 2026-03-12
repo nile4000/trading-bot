@@ -10,7 +10,9 @@ import ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetExecutionService
 import ch.lueem.tradingbot.adapters.market.BinanceTickerPriceMarketSnapshotProvider;
 import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.core.runtime.TradingRuntime;
-import ch.lueem.tradingbot.core.strategy.action.QueuedActionEvaluator;
+import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorContext;
+import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorFactory;
+import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
 
 /**
  * Resolves secrets and infrastructure dependencies for the configured paper bot
@@ -20,12 +22,21 @@ public class PaperBotSetup {
 
     private final BinanceSpotTestnetClientFactory clientFactory;
     private final EnvironmentVariableResolver environmentVariableResolver;
+    private final StrategyEvaluatorFactory strategyFactory;
 
     public PaperBotSetup(
             BinanceSpotTestnetClientFactory clientFactory,
             EnvironmentVariableResolver environmentVariableResolver) {
+        this(clientFactory, environmentVariableResolver, new StrategyEvaluatorFactory());
+    }
+
+    public PaperBotSetup(
+            BinanceSpotTestnetClientFactory clientFactory,
+            EnvironmentVariableResolver environmentVariableResolver,
+            StrategyEvaluatorFactory strategyFactory) {
         this.clientFactory = clientFactory;
         this.environmentVariableResolver = environmentVariableResolver;
+        this.strategyFactory = strategyFactory;
     }
 
     public PaperBotSession createSession(PaperConfig paper) {
@@ -33,8 +44,9 @@ public class PaperBotSetup {
         ensureSupportedExchange(paper);
 
         BinanceSpotTestnetClient client = createClient(paper);
+        BinanceTickerPriceMarketSnapshotProvider marketSnapshotProvider = new BinanceTickerPriceMarketSnapshotProvider(client);
         PaperPortfolioService portfolioService = createPortfolioService(paper);
-        TradingRuntime runtime = createRuntime(paper, client, portfolioService);
+        TradingRuntime runtime = createRuntime(paper, client, marketSnapshotProvider, portfolioService);
         return new PaperBotSession(runtime, paper, client.baseUrl());
     }
 
@@ -67,17 +79,23 @@ public class PaperBotSetup {
     private TradingRuntime createRuntime(
             PaperConfig paper,
             BinanceSpotTestnetClient client,
+            BinanceTickerPriceMarketSnapshotProvider marketSnapshotProvider,
             PaperPortfolioService portfolioService) {
+        StrategyActionEvaluator evaluator = strategyFactory.create(
+                paper.strategy().toStrategyDefinition(),
+                StrategyEvaluatorContext.ta4jOrQueued(marketSnapshotProvider.series(), paper.strategy().actions()));
         return new TradingRuntime(
                 paper.toTradingDefinition(),
-                new BinanceTickerPriceMarketSnapshotProvider(client),
+                marketSnapshotProvider,
                 portfolioService,
-                new QueuedActionEvaluator(paper.actionSource().actions()),
+                evaluator,
                 new BinanceSpotTestnetExecutionService(
                         client,
                         portfolioService,
                         paper.execution().orderQuantity(),
                         paper.binance().recvWindowMillis(),
-                        paper.execution().orderMode()));
+                        paper.execution().orderMode(),
+                        paper.execution().placeOrdersEnabled(),
+                        paper.execution().maxOrderNotional()));
     }
 }

@@ -6,7 +6,7 @@ Java-21-Maven-Projekt fuer Backtesting und einen technischen Paper-Testnet-Pfad.
 
 - V1: Backtesting plus technischer `PAPER`-Pfad
 - CSV-basierter Datenimport fuer OHLCV-Bars
-- Erste Strategie im `BACKTEST`
+- Erste Strategien fuer `BACKTEST` und `PAPER`
 - JSON als Backtest-Ausgabeformat
 - Logback fuer technische Laufzeit-Logs
 - Anwendungsmodi sind `BACKTEST | PAPER`
@@ -21,14 +21,14 @@ Nicht Teil dieser V1:
 
 - Ein einzelner Trading-Bot mit zwei Betriebsarten: `BACKTEST` und `PAPER`
 - `BACKTEST` ist heute der fachlich staerkere Pfad: CSV rein, `ema_cross` ueber `ta4j`, simulierte Ausfuehrung, JSON-Report raus
-- `PAPER` ist heute ein technischer Testpfad: Binance Spot Testnet Preis rein, vorkonfigurierte `queued_actions`, `orderTest` validieren, lokales Paper-Portfolio fortschreiben
+- `PAPER` kann heute einfache ta4j-Strategien oder `queued_actions` gegen Binance Spot Testnet laufen lassen
 - `ta4j` ist aktuell Strategy-/Indikator-Schicht fuer den Backtest, nicht die Runtime, nicht das Reporting und nicht der Paper-Bot
-- Die App ist damit heute eher ein kleiner Backtest-Bot plus technischer Paper-Execution-Testpfad als eine voll ausgebaute allgemeine Trading-Plattform
+- Die App ist damit heute eher ein kleiner Strategy-Bot fuer Backtest und Paper-Testnet als eine voll ausgebaute allgemeine Trading-Plattform
 
 Aktuelle Ausbau-Richtung:
 
 - weitere Strategien und Indikatoren zuerst im `BACKTEST`
-- `PAPER` spaeter optional von `queued_actions` zu echter Strategieauswertung weiterentwickeln
+- `PAPER` auf robusteren Dauerlauf, Risk-Regeln und Session-Steuerung ausbauen
 - Reporting vorerst im eigenen App-Modell halten
 
 ## Voraussetzungen
@@ -71,8 +71,21 @@ Kurzmodell:
 
 Die Standardkonfiguration liegt in [application.yml](c:/dev/trading/apps/trading-bot/src/main/resources/application.yml).
 
+Zusaetzliche Profile:
+
+- `application-backtest.yml`
+- `application-paper.yml`
+
+Auswahlreihenfolge beim Start:
+
+- erstes CLI-Argument
+- `-Dtrading.config=...`
+- `TRADING_CONFIG`
+- sonst `application.yml`
+
 Aktuell unterstuetzte Backtest-Strategien:
 
+- `queued_actions`
 - `ema_cross`
 - `sma_cross`
 - `rsi_reversion`
@@ -97,7 +110,7 @@ data/historical/BTCUSDT-1h.csv
 - Backtest-Ergebnisse werden als JSON auf `stdout` ausgegeben
 - Logging und Reporting sind bewusst getrennt
 - JSON ist fuer diese V1 der feste standard
-- `PAPER` nutzt Binance Spot Testnet REST, validiert `orderTest`-Requests und spiegelt validierte Orders in das lokale Paper-Portfolio
+- `PAPER` nutzt Binance Spot Testnet REST, validiert Orders oder platziert echte Testnet-Market-Orders und spiegelt erfolgreiche Aktionen in das lokale Paper-Portfolio
 - Das aktuelle JSON-Schema wird als `reportVersion: "v4"` ausgegeben
 - Backtest-Reports enthalten `metadata.mode: "BACKTEST"` als explizite Ausfuehrungsrealitaet
 - Geld- und Prozentwerte werden als numerische JSON-Werte mit 4 Dezimalstellen ausgegeben
@@ -117,4 +130,24 @@ Wichtige Report-Felder:
 ```bash
 mvn clean compile
 mvn exec:java
+```
+
+Beispiele:
+
+```bash
+mvn -Dexec.args="application-backtest.yml" exec:java
+mvn -Dexec.args="application-paper.yml" exec:java
+mvn -Dtrading.config=application-paper.yml exec:java
+```
+
+Fuer `PAPER` mit echten Testnet-Orders:
+
+- `paper.execution.orderMode: PLACE_ORDER`
+- `paper.execution.placeOrdersEnabled: true`
+- `paper.execution.maxOrderNotional: ...`
+
+Die Tick-Logs bleiben knapp, z. B.:
+
+```text
+Paper tick. decision=BUY, execution=PLACED, position=OPEN, price=70178.00, detail=testnet_order#12345
 ```

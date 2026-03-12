@@ -11,12 +11,15 @@ import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.core.portfolio.PortfolioSnapshot;
 import ch.lueem.tradingbot.core.portfolio.PositionSnapshot;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
+import com.binance.connector.client.spot.rest.model.NewOrderRequest;
+import com.binance.connector.client.spot.rest.model.NewOrderResponse;
 import com.binance.connector.client.spot.rest.model.OrderTestRequest;
 import com.binance.connector.client.spot.rest.model.OrderType;
 import com.binance.connector.client.spot.rest.model.Side;
 
 /**
- * Validates Spot Testnet orders through Binance without executing real trades.
+ * Validates or places Spot Testnet orders and mirrors successful actions into
+ * the local paper portfolio.
  */
 public class BinanceSpotTestnetExecutionService implements ExecutionService {
 
@@ -25,13 +28,17 @@ public class BinanceSpotTestnetExecutionService implements ExecutionService {
     private final BigDecimal orderQuantity;
     private final double recvWindowMillis;
     private final PaperOrderMode orderMode;
+    private final boolean placeOrdersEnabled;
+    private final BigDecimal maxOrderNotional;
 
     public BinanceSpotTestnetExecutionService(
             BinanceSpotTestnetClient client,
             PaperPortfolioService portfolioService,
             BigDecimal orderQuantity,
             double recvWindowMillis,
-            PaperOrderMode orderMode) {
+            PaperOrderMode orderMode,
+            boolean placeOrdersEnabled,
+            BigDecimal maxOrderNotional) {
         if (client == null) {
             throw new IllegalArgumentException("client must not be null.");
         }
@@ -47,14 +54,13 @@ public class BinanceSpotTestnetExecutionService implements ExecutionService {
         if (orderMode == null) {
             throw new IllegalArgumentException("orderMode must not be null.");
         }
-        if (orderMode != PaperOrderMode.VALIDATE_ONLY) {
-            throw new IllegalStateException("Binance Spot Testnet phase 1 supports only VALIDATE_ONLY order mode.");
-        }
         this.client = client;
         this.portfolioService = portfolioService;
         this.orderQuantity = orderQuantity;
         this.recvWindowMillis = recvWindowMillis;
         this.orderMode = orderMode;
+        this.placeOrdersEnabled = placeOrdersEnabled;
+        this.maxOrderNotional = maxOrderNotional;
     }
 
     @Override
@@ -70,33 +76,42 @@ public class BinanceSpotTestnetExecutionService implements ExecutionService {
         }
 
         try {
-            client.validateOrder(buildOrderTestRequest(request));
-            return applyValidatedAction(request);
+            return switch (orderMode) {
+                case VALIDATE_ONLY -> validateOnly(request);
+                case PLACE_ORDER -> placeOrder(request);
+            };
         } catch (RuntimeException exception) {
             throw new IllegalStateException(
-                    "Failed to validate %s action on Binance Spot Testnet for symbol %s"
-                            .formatted(request.tradeAction(), request.symbol()),
+                    "Failed to %s %s action on Binance Spot Testnet for symbol %s"
+                            .formatted(orderMode == PaperOrderMode.PLACE_ORDER ? "place" : "validate",
+                                    request.tradeAction(), request.symbol()),
                     exception);
         }
     }
 
     private ExecutionResult skipResultFor(ExecutionRequest request, PortfolioSnapshot snapshot) {
         if (request.tradeAction() == TradeAction.HOLD) {
-            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "No execution for HOLD action.");
+            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "no_action");
         }
         if (request.referencePrice() == null || request.referencePrice().signum() <= 0) {
-            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "Order validation skipped because reference price is invalid.");
+            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "invalid_price");
         }
 
         PositionSnapshot position = snapshot.position();
         if (request.tradeAction() == TradeAction.BUY && position.open()) {
-            return new ExecutionResult(ExecutionStatus.SKIPPED, false, true, "BUY ignored because a paper position is already open.");
+            return new ExecutionResult(ExecutionStatus.SKIPPED, false, true, "position_already_open");
         }
         if (request.tradeAction() == TradeAction.SELL && !position.open()) {
-            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "SELL ignored because no paper position is open.");
+            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "no_open_position");
         }
         if (request.tradeAction() == TradeAction.BUY && availableCashIsInsufficient(request, snapshot)) {
-            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "BUY ignored because available paper cash is insufficient.");
+            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "insufficient_cash");
+        }
+        if (request.tradeAction() == TradeAction.BUY && exceedsMaxOrderNotional(request)) {
+            return new ExecutionResult(ExecutionStatus.SKIPPED, false, false, "max_notional_exceeded");
+        }
+        if (orderMode == PaperOrderMode.PLACE_ORDER && !placeOrdersEnabled) {
+            return new ExecutionResult(ExecutionStatus.SKIPPED, false, position.open(), "place_orders_disabled");
         }
 
         return null;
@@ -105,6 +120,14 @@ public class BinanceSpotTestnetExecutionService implements ExecutionService {
     private boolean availableCashIsInsufficient(ExecutionRequest request, PortfolioSnapshot snapshot) {
         BigDecimal orderValue = orderQuantity.multiply(request.referencePrice());
         return snapshot.availableCash().compareTo(orderValue) < 0;
+    }
+
+    private boolean exceedsMaxOrderNotional(ExecutionRequest request) {
+        if (maxOrderNotional == null || maxOrderNotional.signum() <= 0) {
+            return false;
+        }
+        BigDecimal orderValue = orderQuantity.multiply(request.referencePrice());
+        return orderValue.compareTo(maxOrderNotional) > 0;
     }
 
     private OrderTestRequest buildOrderTestRequest(ExecutionRequest request) {
@@ -116,24 +139,48 @@ public class BinanceSpotTestnetExecutionService implements ExecutionService {
                 .recvWindow(recvWindowMillis);
     }
 
-    private ExecutionResult applyValidatedAction(ExecutionRequest request) {
+    private NewOrderRequest buildOrderRequest(ExecutionRequest request) {
+        return new NewOrderRequest()
+                .symbol(request.symbol())
+                .side(toSide(request.tradeAction()))
+                .type(OrderType.MARKET)
+                .quantity(orderQuantity.doubleValue())
+                .recvWindow(recvWindowMillis);
+    }
+
+    private ExecutionResult validateOnly(ExecutionRequest request) {
+        client.validateOrder(buildOrderTestRequest(request));
+        return applySuccessfulAction(request, ExecutionStatus.VALIDATED, "validated_only");
+    }
+
+    private ExecutionResult placeOrder(ExecutionRequest request) {
+        NewOrderResponse response = client.placeOrder(buildOrderRequest(request));
+        String detail = response.getOrderId() == null
+                ? "testnet_order"
+                : "testnet_order#" + response.getOrderId();
+        return applySuccessfulAction(request, ExecutionStatus.EXECUTED, detail);
+    }
+
+    private ExecutionResult applySuccessfulAction(
+            ExecutionRequest request,
+            ExecutionStatus status,
+            String message) {
         if (request.tradeAction() == TradeAction.BUY) {
-            portfolioService.openPosition(request.symbol(), orderQuantity, request.referencePrice(), request.requestedAt());
+            portfolioService.openPosition(request.symbol(), orderQuantity, request.referencePrice(),
+                    request.requestedAt());
             return new ExecutionResult(
-                    ExecutionStatus.VALIDATED,
+                    status,
                     true,
                     true,
-                    "Order validated on Binance Spot Testnet and applied to the local paper portfolio via %s/orderTest."
-                            .formatted(orderMode));
+                    message);
         }
 
         portfolioService.closePosition(request.symbol(), request.referencePrice());
         return new ExecutionResult(
-                ExecutionStatus.VALIDATED,
+                status,
                 true,
                 false,
-                "Order validated on Binance Spot Testnet and applied to the local paper portfolio via %s/orderTest."
-                        .formatted(orderMode));
+                message);
     }
 
     private Side toSide(TradeAction tradeAction) {

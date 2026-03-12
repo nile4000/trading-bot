@@ -10,7 +10,9 @@ public record PaperExecutionConfig(
         PaperOrderMode orderMode,
         long tickIntervalMillis,
         double initialCash,
-        BigDecimal orderQuantity
+        BigDecimal orderQuantity,
+        boolean placeOrdersEnabled,
+        BigDecimal maxOrderNotional
 ) {
     public void validate() {
         if (exchange == null) {
@@ -28,9 +30,15 @@ public record PaperExecutionConfig(
         if (orderQuantity == null || orderQuantity.signum() <= 0) {
             throw new IllegalStateException("paper.execution.orderQuantity must be greater than zero.");
         }
-        if (orderMode != PaperOrderMode.VALIDATE_ONLY) {
-            throw new IllegalStateException("paper.execution.orderMode=%s is not supported in phase 1."
-                    .formatted(orderMode));
+        if (orderMode == PaperOrderMode.PLACE_ORDER) {
+            if (!placeOrdersEnabled) {
+                throw new IllegalStateException(
+                        "paper.execution.placeOrdersEnabled must be true when paper.execution.orderMode=PLACE_ORDER.");
+            }
+            if (maxOrderNotional == null || maxOrderNotional.signum() <= 0) {
+                throw new IllegalStateException(
+                        "paper.execution.maxOrderNotional must be greater than zero when paper.execution.orderMode=PLACE_ORDER.");
+            }
         }
     }
 }

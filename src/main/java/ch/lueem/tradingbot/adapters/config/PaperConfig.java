@@ -2,7 +2,6 @@ package ch.lueem.tradingbot.adapters.config;
 
 import ch.lueem.tradingbot.core.runtime.BotMode;
 import ch.lueem.tradingbot.core.runtime.TradingDefinition;
-import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 
 /**
  * Holds the configured input for one paper bot runtime.
@@ -10,7 +9,7 @@ import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 public record PaperConfig(
         PaperBotConfig bot,
         PaperExecutionConfig execution,
-        PaperActionSourceConfig actionSource,
+        PaperStrategyConfig strategy,
         BinanceSpotTestnetConfig binance
 ) {
     public void validate() {
@@ -20,8 +19,8 @@ public record PaperConfig(
         if (execution == null) {
             throw new IllegalStateException("Missing 'paper.execution' section in application.yml.");
         }
-        if (actionSource == null) {
-            throw new IllegalStateException("Missing 'paper.actionSource' section in application.yml.");
+        if (strategy == null) {
+            throw new IllegalStateException("Missing 'paper.strategy' section in application.yml.");
         }
         if (binance == null) {
             throw new IllegalStateException("Missing 'paper.binance' section in application.yml.");
@@ -29,7 +28,7 @@ public record PaperConfig(
 
         bot.validate();
         execution.validate();
-        actionSource.validate();
+        strategy.validate();
         binance.validate();
     }
 
@@ -41,6 +40,6 @@ public record PaperConfig(
                 BotMode.PAPER,
                 bot.symbol(),
                 bot.timeframe(),
-                new StrategyDefinition(actionSource.strategyName(), null));
+                strategy.toStrategyDefinition());
     }
 }

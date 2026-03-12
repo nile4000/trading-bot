@@ -6,6 +6,8 @@ import com.binance.connector.client.common.ApiException;
 import com.binance.connector.client.common.ApiResponse;
 import com.binance.connector.client.common.configuration.ClientConfiguration;
 import com.binance.connector.client.spot.rest.api.SpotRestApi;
+import com.binance.connector.client.spot.rest.model.NewOrderRequest;
+import com.binance.connector.client.spot.rest.model.NewOrderResponse;
 import com.binance.connector.client.spot.rest.model.OrderTestRequest;
 import com.binance.connector.client.spot.rest.model.TickerPriceResponse;
 import com.binance.connector.client.spot.rest.model.TickerPriceResponse1;
@@ -52,6 +54,16 @@ public class DefaultBinanceSpotTestnetClient implements BinanceSpotTestnetClient
             spotRestApi.orderTest(request);
         } catch (ApiException exception) {
             throw new IllegalStateException("Binance Spot Testnet order validation failed for symbol "
+                    + request.getSymbol(), exception);
+        }
+    }
+
+    @Override
+    public NewOrderResponse placeOrder(NewOrderRequest request) {
+        try {
+            return spotRestApi.newOrder(request).getData();
+        } catch (ApiException exception) {
+            throw new IllegalStateException("Binance Spot Testnet order placement failed for symbol "
                     + request.getSymbol(), exception);
         }
     }

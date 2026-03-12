@@ -59,10 +59,10 @@ public class BacktestReportJsonPrinter {
             return notes;
         }
         if (report.closedTradeCount() == 0) {
-            notes.add("No closed EMA cross trade was generated on this dataset.");
+            notes.add("No closed trade was generated on this dataset.");
         }
         if (report.hasOpenPosition()) {
-            notes.add("An open position remains at the end of the series and is valued mark-to-market.");
+            notes.add("An open position remains at the end of the backtest and is valued mark-to-market.");
         }
         return notes;
     }

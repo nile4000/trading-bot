@@ -1,6 +1,7 @@
 package ch.lueem.tradingbot.modes.paper;
 
 import ch.lueem.tradingbot.adapters.config.LoggingConfig;
+import ch.lueem.tradingbot.core.execution.ExecutionStatus;
 import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,12 +61,22 @@ public class PaperBotLoop {
     private void logCycle(LoggingConfig logging, RuntimeCycleResult tickResult) {
         if (logging.lifecycleEvents()) {
             LOG.info(
-                    "Paper cycle finished. action={}, executionStatus={}, executed={}, price={}, message={}",
+                    "Paper tick. decision={}, execution={}, position={}, price={}, detail={}",
                     tickResult.action(),
-                    tickResult.executionResult().status(),
-                    tickResult.executionResult().executed(),
-                    tickResult.marketSnapshot().lastPrice(),
+                    executionLabel(tickResult),
+                    positionLabel(tickResult),
+                    tickResult.marketSnapshot().lastPrice().toPlainString(),
                     tickResult.executionResult().message());
         }
+    }
+
+    static String executionLabel(RuntimeCycleResult tickResult) {
+        return tickResult.executionResult().status() == ExecutionStatus.EXECUTED
+                ? "PLACED"
+                : tickResult.executionResult().status().name();
+    }
+
+    static String positionLabel(RuntimeCycleResult tickResult) {
+        return tickResult.portfolioSnapshot().position().open() ? "OPEN" : "FLAT";
     }
 }

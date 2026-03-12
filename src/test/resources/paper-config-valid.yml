@@ -12,8 +12,10 @@ paper:
     tickIntervalMillis: 10000
     initialCash: 1000.0
     orderQuantity: 0.0001
-  actionSource:
-    strategyName: queued_actions
+    placeOrdersEnabled: false
+    maxOrderNotional: 25.0
+  strategy:
+    name: queued_actions
     actions:
     - BUY
     - HOLD

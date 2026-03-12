@@ -1,6 +1,5 @@
 package ch.lueem.tradingbot.modes.paper;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.math.BigDecimal;
@@ -10,12 +9,12 @@ import ch.lueem.tradingbot.adapters.config.ApplicationConfig;
 import ch.lueem.tradingbot.adapters.config.ApplicationMode;
 import ch.lueem.tradingbot.adapters.config.BinanceSpotTestnetConfig;
 import ch.lueem.tradingbot.adapters.config.LoggingConfig;
-import ch.lueem.tradingbot.adapters.config.PaperActionSourceConfig;
 import ch.lueem.tradingbot.adapters.config.PaperBotConfig;
 import ch.lueem.tradingbot.adapters.config.PaperConfig;
 import ch.lueem.tradingbot.adapters.config.PaperExchange;
 import ch.lueem.tradingbot.adapters.config.PaperExecutionConfig;
 import ch.lueem.tradingbot.adapters.config.PaperOrderMode;
+import ch.lueem.tradingbot.adapters.config.PaperStrategyConfig;
 import ch.lueem.tradingbot.adapters.config.ReportingConfig;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import org.junit.jupiter.api.Test;
@@ -47,8 +46,10 @@ class PaperBotServiceTest {
                                 orderMode,
                                 1000L,
                                 1000.0,
-                                new BigDecimal("0.0010")),
-                        new PaperActionSourceConfig("queued_actions", List.of(TradeAction.BUY, TradeAction.SELL)),
+                                new BigDecimal("0.0010"),
+                                false,
+                                new BigDecimal("25.0")),
+                        new PaperStrategyConfig("queued_actions", null, List.of(TradeAction.BUY, TradeAction.SELL)),
                         new BinanceSpotTestnetConfig("BINANCE_TESTNET_API_KEY", "BINANCE_TESTNET_SECRET_KEY", 15000.0)),
                 new ReportingConfig(true, true),
                 new LoggingConfig(false));

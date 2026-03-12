@@ -12,11 +12,11 @@ paper:
     tickIntervalMillis: 10000
     initialCash: 1000.0
     orderQuantity: 0.0001
-  actionSource:
-    strategyName: ema_cross
-    actions:
-    - BUY
-    - SELL
+  strategy:
+    name: ema_cross
+    parameters:
+      shortEma: 3
+      longEma: 7
   binance:
     apiKeyEnv: BINANCE_TESTNET_API_KEY
     secretKeyEnv: BINANCE_TESTNET_SECRET_KEY

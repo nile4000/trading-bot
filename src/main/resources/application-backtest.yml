@@ -1,0 +1,20 @@
+mode: BACKTEST
+
+backtest:
+  csvPath: data/historical/BTCUSDT-1h.csv
+  symbol: BTCUSDT
+  timeframe: 1h
+  strategy:
+    name: ema_cross
+    parameters:
+      shortEma: 3
+      longEma: 7
+  portfolio:
+    initialCash: 10000.0
+
+reporting:
+  prettyPrint: true
+  includeNotes: true
+
+logging:
+  lifecycleEvents: false

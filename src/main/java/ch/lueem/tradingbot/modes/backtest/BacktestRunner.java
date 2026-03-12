@@ -9,8 +9,9 @@ import ch.lueem.tradingbot.adapters.market.CsvHistoricalMarketSnapshotProvider;
 import ch.lueem.tradingbot.adapters.execution.SimulatedExecutionService;
 import ch.lueem.tradingbot.adapters.portfolio.SimulatedPortfolioService;
 import ch.lueem.tradingbot.core.runtime.TradingRuntime;
+import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorContext;
+import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorFactory;
 import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
-import ch.lueem.tradingbot.core.strategy.ta4j.Ta4jStrategyFactory;
 import org.ta4j.core.BarSeries;
 
 /**
@@ -22,17 +23,17 @@ public class BacktestRunner {
     private final CsvBarSeriesLoader csvBarSeriesLoader;
     private final HistoricalRuntimeRunner historicalRuntimeRunner;
     private final ReportGenerator reportGenerator;
-    private final Ta4jStrategyFactory strategyFactory;
+    private final StrategyEvaluatorFactory strategyFactory;
 
     public BacktestRunner() {
-        this(new CsvBarSeriesLoader(), new HistoricalRuntimeRunner(), new ReportGenerator(), new Ta4jStrategyFactory());
+        this(new CsvBarSeriesLoader(), new HistoricalRuntimeRunner(), new ReportGenerator(), new StrategyEvaluatorFactory());
     }
 
     public BacktestRunner(
             CsvBarSeriesLoader csvBarSeriesLoader,
             HistoricalRuntimeRunner historicalRuntimeRunner,
             ReportGenerator reportGenerator,
-            Ta4jStrategyFactory strategyFactory) {
+            StrategyEvaluatorFactory strategyFactory) {
         this.csvBarSeriesLoader = csvBarSeriesLoader;
         this.historicalRuntimeRunner = historicalRuntimeRunner;
         this.reportGenerator = reportGenerator;
@@ -87,6 +88,6 @@ public class BacktestRunner {
     }
 
     private StrategyActionEvaluator createStrategyEvaluator(BacktestConfig config, BarSeries series) {
-        return strategyFactory.create(config.strategy(), series);
+        return strategyFactory.create(config.strategy(), StrategyEvaluatorContext.ta4j(series));
     }
 }

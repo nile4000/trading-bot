@@ -15,25 +15,37 @@ class ApplicationConfigLoaderTest {
         assertEquals(ApplicationMode.PAPER, config.mode());
         assertEquals("btcusdt-paper-testnet", config.paper().bot().botId());
         assertEquals(PaperOrderMode.VALIDATE_ONLY, config.paper().execution().orderMode());
-        assertEquals("queued_actions", config.paper().actionSource().strategyName());
+        assertEquals(false, config.paper().execution().placeOrdersEnabled());
+        assertEquals("queued_actions", config.paper().strategy().name());
         assertEquals(15000.0, config.paper().binance().recvWindowMillis());
     }
 
     @Test
-    void load_rejectsUnsupportedPaperOrderMode() {
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
-                () -> new ApplicationConfigLoader("paper-config-place-order.yml").load());
+    void load_acceptsPlaceOrderPaperConfiguration() {
+        ApplicationConfig config = new ApplicationConfigLoader("paper-config-place-order.yml").load();
 
-        assertTrue(exception.getMessage().contains("not supported in phase 1"));
+        assertEquals(ApplicationMode.PAPER, config.mode());
+        assertEquals(PaperOrderMode.PLACE_ORDER, config.paper().execution().orderMode());
+        assertTrue(config.paper().execution().placeOrdersEnabled());
+        assertEquals("25.0", config.paper().execution().maxOrderNotional().toPlainString());
     }
 
     @Test
-    void load_rejectsUnsupportedPaperActionSourceStrategy() {
+    void load_rejectsPlaceOrderConfigurationWithoutSafetyGuards() {
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> new ApplicationConfigLoader("paper-config-unsupported-strategy.yml").load());
+                () -> new ApplicationConfigLoader("paper-config-place-order-missing-guard.yml").load());
 
-        assertTrue(exception.getMessage().contains("strategyName=ema_cross"));
+        assertTrue(exception.getMessage().contains("placeOrdersEnabled"));
+    }
+
+    @Test
+    void load_acceptsPaperTa4jStrategyConfiguration() {
+        ApplicationConfig config = new ApplicationConfigLoader("paper-config-ta4j-strategy.yml").load();
+
+        assertEquals(ApplicationMode.PAPER, config.mode());
+        assertEquals("ema_cross", config.paper().strategy().name());
+        assertEquals(3, config.paper().strategy().parameters().shortEma());
+        assertEquals(7, config.paper().strategy().parameters().longEma());
     }
 }
