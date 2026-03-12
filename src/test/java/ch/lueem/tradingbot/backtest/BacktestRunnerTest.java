@@ -8,7 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 
-import ch.lueem.tradingbot.application.BacktestRequest;
+import ch.lueem.tradingbot.application.BacktestConfig;
+import ch.lueem.tradingbot.application.PortfolioConfig;
 import ch.lueem.tradingbot.backtest.model.BacktestPositionReport;
 import ch.lueem.tradingbot.backtest.model.BacktestReport;
 import ch.lueem.tradingbot.bot.model.BotMode;
@@ -24,14 +25,14 @@ class BacktestRunnerTest {
 
         Path csvPath = Path.of("data/historical/BTCUSDT-1h.csv");
         StrategyDefinition strategy = new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
-        BacktestRequest request = new BacktestRequest(
+        BacktestConfig config = new BacktestConfig(
                 csvPath,
                 "BTCUSDT",
                 "1h",
                 strategy,
-                10000.0);
+                new PortfolioConfig(10000.0));
 
-        BacktestReport report = runner.run(request);
+        BacktestReport report = runner.run(config);
         BacktestPositionReport openPosition = report.positions().getLast();
 
         assertEquals(BotMode.BACKTEST, report.metadata().mode());

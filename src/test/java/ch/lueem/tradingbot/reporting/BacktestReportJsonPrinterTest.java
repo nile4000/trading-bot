@@ -11,7 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 
-import ch.lueem.tradingbot.application.BacktestRequest;
+import ch.lueem.tradingbot.application.BacktestConfig;
+import ch.lueem.tradingbot.application.PortfolioConfig;
 import ch.lueem.tradingbot.application.ReportingConfig;
 import ch.lueem.tradingbot.backtest.model.BacktestMetadata;
 import ch.lueem.tradingbot.backtest.model.BacktestPositionReport;
@@ -39,12 +40,12 @@ class BacktestReportJsonPrinterTest {
                 new BigDecimal("0.1010"),
                 new BigDecimal("-183.4862"),
                 new BigDecimal("-1.8349"));
-        BacktestRequest request = new BacktestRequest(
+        BacktestConfig config = new BacktestConfig(
                 Path.of("data/historical/BTCUSDT-1h.csv"),
                 "BTCUSDT",
                 "1h",
                 strategy,
-                10000.0);
+                new PortfolioConfig(10000.0));
         BacktestReport report = new BacktestReport(
                 new BacktestMetadata(
                         BotMode.BACKTEST,
@@ -66,7 +67,7 @@ class BacktestReportJsonPrinterTest {
                 List.of(openPosition));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        printer.print(new PrintStream(output), new ReportingConfig(false, true), request, report);
+        printer.print(new PrintStream(output), new ReportingConfig(false, true), config, report);
 
         JsonNode root = new ObjectMapper()
                 .readTree(output.toString(StandardCharsets.UTF_8))
@@ -93,12 +94,12 @@ class BacktestReportJsonPrinterTest {
     void print_writesNullPositionFieldsWhenNoPositionIsOpen() throws Exception {
         BacktestReportJsonPrinter printer = new BacktestReportJsonPrinter();
         StrategyDefinition strategy = new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
-        BacktestRequest request = new BacktestRequest(
+        BacktestConfig config = new BacktestConfig(
                 Path.of("data/historical/BTCUSDT-1h.csv"),
                 "BTCUSDT",
                 "1h",
                 strategy,
-                10000.0);
+                new PortfolioConfig(10000.0));
         BacktestReport report = new BacktestReport(
                 new BacktestMetadata(
                         BotMode.BACKTEST,
@@ -120,7 +121,7 @@ class BacktestReportJsonPrinterTest {
                 List.of());
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        printer.print(new PrintStream(output), new ReportingConfig(false, true), request, report);
+        printer.print(new PrintStream(output), new ReportingConfig(false, true), config, report);
 
         JsonNode root = new ObjectMapper().readTree(output.toString(StandardCharsets.UTF_8));
         JsonNode performance = root.get("performance");

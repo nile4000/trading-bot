@@ -6,10 +6,10 @@ import java.time.OffsetDateTime;
 import ch.lueem.tradingbot.strategy.signal.TradeSignal;
 
 /**
- * Describes one execution request created by a bot cycle.
+ * Describes one execution request created by a runtime cycle.
  */
 public record ExecutionRequest(
-        String botId,
+        String runtimeId,
         String symbol,
         String timeframe,
         TradeSignal tradeSignal,

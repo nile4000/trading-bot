@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.portfolio;
+package ch.lueem.tradingbot.integration.simulation;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -6,10 +6,14 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import ch.lueem.tradingbot.portfolio.PortfolioService;
+import ch.lueem.tradingbot.portfolio.PortfolioSnapshot;
+import ch.lueem.tradingbot.portfolio.PositionSnapshot;
+
 /**
- * Stores paper-trading portfolio state for local bot runtime and execution flows.
+ * Stores simulated portfolio state for historical and local execution flows.
  */
-public class PaperPortfolioService implements PortfolioService {
+public class SimulatedPortfolioService implements PortfolioService {
 
     private static final int MONEY_SCALE = 4;
     private static final int QUANTITY_SCALE = 8;

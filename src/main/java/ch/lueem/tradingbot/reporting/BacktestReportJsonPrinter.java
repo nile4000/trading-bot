@@ -6,7 +6,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
-import ch.lueem.tradingbot.application.BacktestRequest;
+import ch.lueem.tradingbot.application.BacktestConfig;
 import ch.lueem.tradingbot.application.ReportingConfig;
 import ch.lueem.tradingbot.backtest.model.BacktestReport;
 import ch.lueem.tradingbot.reporting.model.BacktestMetadataSection;
@@ -35,7 +35,7 @@ public class BacktestReportJsonPrinter {
     public void print(
             PrintStream out,
             ReportingConfig reporting,
-            BacktestRequest request,
+            BacktestConfig config,
             BacktestReport report) {
         if (out == null) {
             throw new IllegalArgumentException("out must not be null.");
@@ -43,14 +43,14 @@ public class BacktestReportJsonPrinter {
         if (reporting == null) {
             throw new IllegalArgumentException("reporting must not be null.");
         }
-        if (request == null) {
-            throw new IllegalArgumentException("request must not be null.");
+        if (config == null) {
+            throw new IllegalArgumentException("config must not be null.");
         }
         if (report == null) {
             throw new IllegalArgumentException("report must not be null.");
         }
 
-        out.println(toJson(toDocument(request, report, reporting), reporting));
+        out.println(toJson(toDocument(config, report, reporting), reporting));
     }
 
     private List<String> buildNotes(BacktestReport report, ReportingConfig reporting) {
@@ -76,7 +76,7 @@ public class BacktestReportJsonPrinter {
     }
 
     private BacktestReportDocument toDocument(
-            BacktestRequest request,
+            BacktestConfig config,
             BacktestReport report,
             ReportingConfig reporting) {
         return new BacktestReportDocument(
@@ -84,7 +84,7 @@ public class BacktestReportJsonPrinter {
                 REPORT_VERSION,
                 new BacktestMetadataSection(
                         report.metadata().mode(),
-                        request.csvPath().toString(),
+                        config.csvPath().toString(),
                         report.metadata().symbol(),
                         report.metadata().timeframe(),
                         report.metadata().barCount(),

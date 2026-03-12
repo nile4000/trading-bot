@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
-import ch.lueem.tradingbot.bot.model.BotDefinition;
+import ch.lueem.tradingbot.runtime.TradingDefinition;
 
 /**
  * Provides a deterministic sequence of market snapshots for local bot runtime cycles.
@@ -22,7 +22,7 @@ public class SequenceMarketSnapshotProvider implements MarketSnapshotProvider {
     }
 
     @Override
-    public MarketSnapshot load(BotDefinition definition) {
+    public MarketSnapshot load(TradingDefinition definition) {
         if (definition == null) {
             throw new IllegalArgumentException("definition must not be null.");
         }
@@ -31,7 +31,7 @@ public class SequenceMarketSnapshotProvider implements MarketSnapshotProvider {
             lastSnapshot = snapshots.removeFirst();
         }
         if (lastSnapshot == null) {
-            throw new IllegalStateException("No market snapshot available for bot " + definition.botId());
+            throw new IllegalStateException("No market snapshot available for runtime " + definition.runtimeId());
         }
 
         return lastSnapshot;

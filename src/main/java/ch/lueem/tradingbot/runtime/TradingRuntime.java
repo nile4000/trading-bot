@@ -1,14 +1,10 @@
-package ch.lueem.tradingbot.bot.runtime;
+package ch.lueem.tradingbot.runtime;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 import ch.lueem.tradingbot.bot.market.MarketSnapshot;
 import ch.lueem.tradingbot.bot.market.MarketSnapshotProvider;
-import ch.lueem.tradingbot.bot.model.BotDefinition;
-import ch.lueem.tradingbot.bot.model.BotState;
-import ch.lueem.tradingbot.bot.model.BotStatus;
-import ch.lueem.tradingbot.bot.model.BotTickResult;
 import ch.lueem.tradingbot.execution.ExecutionRequest;
 import ch.lueem.tradingbot.execution.ExecutionResult;
 import ch.lueem.tradingbot.execution.ExecutionService;
@@ -19,20 +15,20 @@ import ch.lueem.tradingbot.strategy.signal.StrategySignalEvaluator;
 import ch.lueem.tradingbot.strategy.signal.TradeSignal;
 
 /**
- * Runs one bot cycle: load market state, inspect portfolio, evaluate strategy and delegate execution.
+ * Runs one trading cycle: load market state, inspect portfolio, evaluate strategy and delegate execution.
  */
-public class BotRuntime {
+public class TradingRuntime {
 
-    private final BotDefinition definition;
+    private final TradingDefinition definition;
     private final MarketSnapshotProvider marketSnapshotProvider;
     private final PortfolioService portfolioService;
     private final StrategySignalEvaluator strategySignalEvaluator;
     private final ExecutionService executionService;
 
-    private BotState state;
+    private RuntimeState state;
 
-    public BotRuntime(
-            BotDefinition definition,
+    public TradingRuntime(
+            TradingDefinition definition,
             MarketSnapshotProvider marketSnapshotProvider,
             PortfolioService portfolioService,
             StrategySignalEvaluator strategySignalEvaluator,
@@ -44,27 +40,29 @@ public class BotRuntime {
         this.portfolioService = portfolioService;
         this.strategySignalEvaluator = strategySignalEvaluator;
         this.executionService = executionService;
-        this.state = BotState.starting(definition.botId());
+        this.state = RuntimeState.starting(definition.runtimeId());
     }
 
-    public BotState state() {
+    public RuntimeState state() {
         return state;
     }
 
-    public BotTickResult runCycle() {
+    public RuntimeCycleResult runCycle() {
         OffsetDateTime runTimestamp = OffsetDateTime.now(ZoneOffset.UTC);
 
         try {
             markRunning(runTimestamp);
 
             MarketSnapshot marketSnapshot = marketSnapshotProvider.load(definition);
-            PortfolioSnapshot portfolioSnapshot = portfolioService.getSnapshot(definition.symbol());
-            TradeSignal tradeSignal = strategySignalEvaluator.evaluate(toSignalContext(marketSnapshot, portfolioSnapshot));
+            validateMarketSnapshot(marketSnapshot);
+            PortfolioSnapshot portfolioSnapshotBeforeExecution = portfolioService.getSnapshot(definition.symbol());
+            TradeSignal tradeSignal = strategySignalEvaluator.evaluate(toSignalContext(marketSnapshot, portfolioSnapshotBeforeExecution));
             ExecutionResult executionResult = executionService.execute(toExecutionRequest(runTimestamp, marketSnapshot, tradeSignal));
+            PortfolioSnapshot portfolioSnapshotAfterExecution = portfolioService.getSnapshot(definition.symbol());
 
-            markSuccess(runTimestamp, executionResult.positionOpenAfterExecution());
+            markSuccess(runTimestamp, portfolioSnapshotAfterExecution.position().open());
 
-            return new BotTickResult(state, marketSnapshot, portfolioSnapshot, tradeSignal, executionResult);
+            return new RuntimeCycleResult(state, marketSnapshot, portfolioSnapshotAfterExecution, tradeSignal, executionResult);
         } catch (RuntimeException exception) {
             markFailure(runTimestamp, exception);
             throw exception;
@@ -72,9 +70,9 @@ public class BotRuntime {
     }
 
     private void markRunning(OffsetDateTime runTimestamp) {
-        state = new BotState(
-                definition.botId(),
-                BotStatus.RUNNING,
+        state = new RuntimeState(
+                definition.runtimeId(),
+                RuntimeStatus.RUNNING,
                 runTimestamp,
                 state.lastSuccessAt(),
                 null,
@@ -82,9 +80,9 @@ public class BotRuntime {
     }
 
     private void markSuccess(OffsetDateTime runTimestamp, boolean openPosition) {
-        state = new BotState(
-                definition.botId(),
-                BotStatus.IDLE,
+        state = new RuntimeState(
+                definition.runtimeId(),
+                RuntimeStatus.IDLE,
                 runTimestamp,
                 runTimestamp,
                 null,
@@ -92,13 +90,33 @@ public class BotRuntime {
     }
 
     private void markFailure(OffsetDateTime runTimestamp, RuntimeException exception) {
-        state = new BotState(
-                definition.botId(),
-                BotStatus.FAILED,
+        state = new RuntimeState(
+                definition.runtimeId(),
+                RuntimeStatus.FAILED,
                 runTimestamp,
                 state.lastSuccessAt(),
                 exception.getMessage(),
                 state.openPosition());
+    }
+
+    private void validateMarketSnapshot(MarketSnapshot marketSnapshot) {
+        if (marketSnapshot == null) {
+            throw new IllegalStateException("marketSnapshotProvider returned null for runtime " + definition.runtimeId());
+        }
+        if (!definition.symbol().equals(marketSnapshot.symbol())) {
+            throw new IllegalStateException("Market snapshot symbol does not match runtime definition: "
+                    + marketSnapshot.symbol());
+        }
+        if (!definition.timeframe().equals(marketSnapshot.timeframe())) {
+            throw new IllegalStateException("Market snapshot timeframe does not match runtime definition: "
+                    + marketSnapshot.timeframe());
+        }
+        if (marketSnapshot.lastPrice() == null || marketSnapshot.lastPrice().signum() <= 0) {
+            throw new IllegalStateException("Market snapshot price must be greater than zero for runtime " + definition.runtimeId());
+        }
+        if (marketSnapshot.observedAt() == null) {
+            throw new IllegalStateException("Market snapshot observedAt must not be null for runtime " + definition.runtimeId());
+        }
     }
 
     private SignalContext toSignalContext(MarketSnapshot marketSnapshot, PortfolioSnapshot portfolioSnapshot) {
@@ -107,7 +125,8 @@ public class BotRuntime {
                 definition.timeframe(),
                 marketSnapshot.observedAt(),
                 marketSnapshot.lastPrice(),
-                portfolioSnapshot.position().open());
+                portfolioSnapshot.position().open(),
+                marketSnapshot.closePriceHistory());
     }
 
     private ExecutionRequest toExecutionRequest(
@@ -115,7 +134,7 @@ public class BotRuntime {
             MarketSnapshot marketSnapshot,
             TradeSignal tradeSignal) {
         return new ExecutionRequest(
-                definition.botId(),
+                definition.runtimeId(),
                 definition.symbol(),
                 definition.timeframe(),
                 tradeSignal,
@@ -124,7 +143,7 @@ public class BotRuntime {
     }
 
     private void validateInputs(
-            BotDefinition definition,
+            TradingDefinition definition,
             MarketSnapshotProvider marketSnapshotProvider,
             PortfolioService portfolioService,
             StrategySignalEvaluator strategySignalEvaluator,

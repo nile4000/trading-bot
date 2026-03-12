@@ -2,6 +2,8 @@ package ch.lueem.tradingbot.application;
 
 import java.nio.file.Path;
 
+import ch.lueem.tradingbot.bot.model.BotMode;
+import ch.lueem.tradingbot.runtime.TradingDefinition;
 import ch.lueem.tradingbot.strategy.definition.StrategyDefinition;
 
 /**
@@ -14,17 +16,18 @@ public record BacktestConfig(
         StrategyDefinition strategy,
         PortfolioConfig portfolio
 ) {
-    public BacktestRequest toRequest() {
+    public TradingDefinition toTradingDefinition() {
         validate();
-        return new BacktestRequest(
-                csvPath,
+        return new TradingDefinition(
+                "backtest-" + symbol.toLowerCase() + "-" + timeframe,
+                "historical",
+                BotMode.BACKTEST,
                 symbol,
                 timeframe,
-                strategy,
-                portfolio.initialCash());
+                strategy);
     }
 
-    private void validate() {
+    public void validate() {
         if (csvPath == null) {
             throw new IllegalStateException("backtest.csvPath must not be null.");
         }

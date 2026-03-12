@@ -1,20 +1,18 @@
 # trading-bot
 
-Kleines Java-21-Maven-Projekt fuer lokales Backtesting mit `ta4j`.
+Kleines Java-21-Maven-Projekt fuer Backtesting und einen technischen Paper-Testnet-Pfad.
 
 ## Aktueller Stand
 
-- V1 fuer Phase 1: nur lokales Backtesting
+- V1 fuer Phase 1/Phase 2: Backtesting plus technischer `PAPER`-Integrationspfad
 - CSV-basierter Datenimport fuer OHLCV-Bars
 - EMA-Cross-Strategie
 - JSON ist das feste Ergebnisformat
 - Logback fuer technische Laufzeit-Logs
-- Ausfuehrungsmodi sind systemweit als `BACKTEST | PAPER | LIVE` definiert
+- Anwendungsmodi sind `BACKTEST | PAPER`
 
 Nicht Teil dieser V1:
 
-- Live-Trading
-- Scheduling
 - REST/API
 - Health-Checks
 - Multi-Bot-Betrieb
@@ -27,14 +25,15 @@ Nicht Teil dieser V1:
 ## Architektur
 
 - `App`: Einstiegspunkt
-- `application`: Konfigurationsladen und Use-Case-Orchestrierung
+- `application`: Konfigurationsladen, Launcher, Paper-Bootstrap und Use-Case-Orchestrierung
 - `backtest`: CSV-Loading, Strategieausfuehrung und Kennzahlen
 - `bot`: Single-Bot-Runtime, Status, letzter Lauf und Tick-Ergebnisse
-- `execution`: Ausfuehrungsabstraktionen fuer Backtest, Paper und spaeter Live
-- `portfolio`: Positions- und Portfoliostand fuer laufende Bots
+- `execution`: mode-neutrale Ausfuehrungsabstraktionen
+- `integration`: modusspezifische Infrastruktur fuer Backtest-nahe und Exchange-nahe Pfade
+- `portfolio`: mode-neutrale Positions- und Portfolio-Modelle
 - `reporting`: JSON-Rendering des `BacktestReport`
 - `strategy`: Strategieaufbau fuer ta4j
-- bevorzugt werden fachliche Klassennamen wie `PaperExecutionService`, `PaperPortfolioService`, `SequenceMarketSnapshotProvider`
+- modusspezifische Adapter liegen bewusst unter `integration/*`
 
 ## Ausfuehrungsmodi
 
@@ -49,13 +48,20 @@ Die Standardkonfiguration liegt in [application.yml](c:/dev/trading/apps/trading
 
 Aktuelle Bereiche:
 
+- `mode`
 - `backtest`
+- `paper.bot`
+- `paper.execution`
+- `paper.signalSource`
+- `paper.binance`
 - `reporting`
 - `logging`
 
 Beispiel:
 
 ```yaml
+mode: BACKTEST
+
 backtest:
   csvPath: data/historical/BTCUSDT-1h.csv
   symbol: BTCUSDT
@@ -67,6 +73,29 @@ backtest:
       longEma: 7
   portfolio:
     initialCash: 10000.0
+
+paper:
+  bot:
+    botId: btcusdt-paper-testnet
+    botVersion: v1
+    symbol: BTCUSDT
+    timeframe: 1m
+  execution:
+    exchange: BINANCE_SPOT_TESTNET
+    orderMode: VALIDATE_ONLY
+    tickIntervalMillis: 10000
+    initialCash: 1000.0
+    orderQuantity: 0.0001
+  signalSource:
+    strategyName: queued_signals
+    signals:
+      - BUY
+      - HOLD
+      - SELL
+  binance:
+    apiKeyEnv: BINANCE_TESTNET_API_KEY
+    secretKeyEnv: BINANCE_TESTNET_SECRET_KEY
+    recvWindowMillis: 15000
 
 reporting:
   prettyPrint: true
@@ -96,6 +125,7 @@ data/historical/BTCUSDT-1h.csv
 - Backtest-Ergebnisse werden als JSON auf `stdout` ausgegeben
 - Logging und Reporting sind bewusst getrennt
 - JSON ist fuer diese V1 der feste standard
+- `PAPER` in Phase 1 nutzt Binance Spot Testnet REST, sendet signierte `orderTest`-Requests und fuehrt keine lokalen Positionsaenderungen aus
 - Das aktuelle JSON-Schema wird als `reportVersion: "v3"` ausgegeben
 - Backtest-Reports enthalten `metadata.mode: "BACKTEST"` als explizite Ausfuehrungsrealitaet
 - Geld- und Prozentwerte werden als numerische JSON-Werte mit 4 Dezimalstellen ausgegeben

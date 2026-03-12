@@ -30,18 +30,18 @@ public class BacktestService {
 
     public void run(ApplicationConfig config, PrintStream out) {
         validateInputs(config, out);
-        BacktestRequest request = config.backtest().toRequest();
+        BacktestConfig backtest = config.backtest();
 
-        logLifecycleStart(config.logging(), request);
+        logLifecycleStart(config.logging(), backtest);
 
-        BacktestReport report = backtestRunner.run(request);
+        BacktestReport report = backtestRunner.run(backtest);
 
         logLifecycleFinish(config.logging(), report);
 
         reportPrinter.print(
                 out,
                 config.reporting(),
-                request,
+                backtest,
                 report);
     }
 
@@ -54,14 +54,14 @@ public class BacktestService {
         }
     }
 
-    private void logLifecycleStart(LoggingConfig logging, BacktestRequest request) {
+    private void logLifecycleStart(LoggingConfig logging, BacktestConfig backtest) {
         if (logging.lifecycleEvents()) {
             LOG.info(
                     "Starting backtest. symbol={}, timeframe={}, strategy={}, csvPath={}",
-                    request.symbol(),
-                    request.timeframe(),
-                    request.strategyName(),
-                    request.csvPath());
+                    backtest.symbol(),
+                    backtest.timeframe(),
+                    backtest.strategy().name(),
+                    backtest.csvPath());
         }
     }
 
