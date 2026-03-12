@@ -49,7 +49,7 @@ public class PaperBotRunner {
 
         int completedCycles = 0;
         while (runCondition.shouldContinue(completedCycles)) {
-            RuntimeCycleResult tickResult = context.runtime().runCycle();
+            RuntimeCycleResult tickResult = context.runtime().cycle();
             logCycle(logging, tickResult);
             completedCycles++;
             sleeper.sleep(context.paper().execution().tickIntervalMillis());
@@ -72,9 +72,9 @@ public class PaperBotRunner {
     private void logCycle(LoggingConfig logging, RuntimeCycleResult tickResult) {
         if (logging.lifecycleEvents()) {
             LOG.info(
-                    "Paper cycle finished. status={}, signal={}, executionStatus={}, executed={}, price={}, message={}",
+                    "Paper cycle finished. status={}, action={}, executionStatus={}, executed={}, price={}, message={}",
                     tickResult.state().status(),
-                    tickResult.tradeSignal(),
+                    tickResult.action(),
                     tickResult.executionResult().status(),
                     tickResult.executionResult().executed(),
                     tickResult.marketSnapshot().lastPrice(),

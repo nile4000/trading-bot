@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ch.lueem.tradingbot.backtest.data.CsvBarSeriesLoader;
-import ch.lueem.tradingbot.bot.market.MarketSnapshot;
-import ch.lueem.tradingbot.bot.market.MarketSnapshotProvider;
+import ch.lueem.tradingbot.runtime.MarketSnapshot;
+import ch.lueem.tradingbot.runtime.MarketSnapshotProvider;
 import ch.lueem.tradingbot.runtime.TradingDefinition;
 import org.ta4j.core.BarSeries;
 

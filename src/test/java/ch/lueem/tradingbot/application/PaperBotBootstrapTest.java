@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.util.List;
 
-import ch.lueem.tradingbot.strategy.signal.TradeSignal;
+import ch.lueem.tradingbot.strategy.action.TradeAction;
 import org.junit.jupiter.api.Test;
 
 class PaperBotBootstrapTest {
@@ -48,7 +48,7 @@ class PaperBotBootstrapTest {
                         1000L,
                         1000.0,
                         new BigDecimal("0.0010")),
-                new PaperSignalSourceConfig("queued_signals", List.of(TradeSignal.BUY)),
+                new PaperActionSourceConfig("queued_actions", List.of(TradeAction.BUY)),
                 new BinanceSpotTestnetConfig("BINANCE_TESTNET_API_KEY", "BINANCE_TESTNET_SECRET_KEY", 15000.0));
     }
 

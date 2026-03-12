@@ -52,7 +52,7 @@ Aktuelle Bereiche:
 - `backtest`
 - `paper.bot`
 - `paper.execution`
-- `paper.signalSource`
+- `paper.actionSource`
 - `paper.binance`
 - `reporting`
 - `logging`
@@ -86,9 +86,9 @@ paper:
     tickIntervalMillis: 10000
     initialCash: 1000.0
     orderQuantity: 0.0001
-  signalSource:
-    strategyName: queued_signals
-    signals:
+  actionSource:
+    strategyName: queued_actions
+    actions:
       - BUY
       - HOLD
       - SELL

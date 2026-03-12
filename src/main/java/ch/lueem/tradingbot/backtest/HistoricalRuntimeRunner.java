@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.integration.backtest;
+package ch.lueem.tradingbot.backtest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +21,7 @@ public class HistoricalRuntimeRunner {
 
         List<RuntimeCycleResult> results = new ArrayList<>(cycleCount);
         for (int cycle = 0; cycle < cycleCount; cycle++) {
-            results.add(runtime.runCycle());
+            results.add(runtime.cycle());
         }
         return List.copyOf(results);
     }

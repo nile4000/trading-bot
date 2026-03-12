@@ -1,6 +1,4 @@
-package ch.lueem.tradingbot.bot.market;
-
-import ch.lueem.tradingbot.runtime.TradingDefinition;
+package ch.lueem.tradingbot.runtime;
 
 /**
  * Provides the latest market snapshot for a bot cycle.

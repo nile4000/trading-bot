@@ -6,9 +6,9 @@ import ch.lueem.tradingbot.integration.binance.spottestnet.BinanceSpotTestnetCli
 import ch.lueem.tradingbot.integration.binance.spottestnet.BinanceSpotTestnetClientFactory;
 import ch.lueem.tradingbot.integration.binance.spottestnet.BinanceSpotTestnetExecutionService;
 import ch.lueem.tradingbot.integration.binance.spottestnet.BinanceTickerPriceMarketSnapshotProvider;
-import ch.lueem.tradingbot.integration.paper.StaticPortfolioService;
+import ch.lueem.tradingbot.integration.paper.PaperPortfolioService;
 import ch.lueem.tradingbot.runtime.TradingRuntime;
-import ch.lueem.tradingbot.strategy.signal.QueuedSignalEvaluator;
+import ch.lueem.tradingbot.strategy.action.QueuedActionEvaluator;
 
 /**
  * Resolves secrets and infrastructure dependencies for the configured paper bot runtime.
@@ -44,14 +44,18 @@ public class PaperBotBootstrap {
         String apiKey = resolveRequiredSecret(paper.binance().apiKeyEnv());
         String secretKey = resolveRequiredSecret(paper.binance().secretKeyEnv());
         BinanceSpotTestnetClient client = clientFactory.create(apiKey, secretKey);
+        PaperPortfolioService portfolioService = new PaperPortfolioService(
+                paper.bot().symbol(),
+                BigDecimal.valueOf(paper.execution().initialCash()));
 
         TradingRuntime runtime = new TradingRuntime(
                 paper.toTradingDefinition(),
                 new BinanceTickerPriceMarketSnapshotProvider(client),
-                new StaticPortfolioService(paper.bot().symbol(), BigDecimal.valueOf(paper.execution().initialCash())),
-                new QueuedSignalEvaluator(paper.signalSource().signals()),
+                portfolioService,
+                new QueuedActionEvaluator(paper.actionSource().actions()),
                 new BinanceSpotTestnetExecutionService(
                         client,
+                        portfolioService,
                         paper.execution().orderQuantity(),
                         paper.binance().recvWindowMillis(),
                         paper.execution().orderMode()));

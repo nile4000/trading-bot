@@ -5,13 +5,11 @@ import java.math.BigDecimal;
 import ch.lueem.tradingbot.application.BacktestConfig;
 import ch.lueem.tradingbot.backtest.data.CsvBarSeriesLoader;
 import ch.lueem.tradingbot.backtest.model.BacktestReport;
-import ch.lueem.tradingbot.integration.backtest.BacktestReportBuilder;
 import ch.lueem.tradingbot.integration.backtest.CsvHistoricalMarketSnapshotProvider;
-import ch.lueem.tradingbot.integration.backtest.HistoricalRuntimeRunner;
 import ch.lueem.tradingbot.integration.simulation.SimulatedExecutionService;
 import ch.lueem.tradingbot.integration.simulation.SimulatedPortfolioService;
 import ch.lueem.tradingbot.runtime.TradingRuntime;
-import ch.lueem.tradingbot.strategy.signal.EmaCrossSignalEvaluator;
+import ch.lueem.tradingbot.strategy.action.EmaCrossActionEvaluator;
 
 /**
  * Coordinates CSV loading, strategy creation and result calculation for one backtest run.
@@ -53,7 +51,7 @@ public class BacktestRunner {
                 config.toTradingDefinition(),
                 marketSnapshotProvider,
                 portfolioService,
-                new EmaCrossSignalEvaluator(config.strategy().parameters()),
+                new EmaCrossActionEvaluator(config.strategy().parameters()),
                 new SimulatedExecutionService(portfolioService));
 
         return reportBuilder.assemble(

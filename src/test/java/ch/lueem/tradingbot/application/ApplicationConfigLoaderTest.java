@@ -15,7 +15,7 @@ class ApplicationConfigLoaderTest {
         assertEquals(ApplicationMode.PAPER, config.mode());
         assertEquals("btcusdt-paper-testnet", config.paper().bot().botId());
         assertEquals(PaperOrderMode.VALIDATE_ONLY, config.paper().execution().orderMode());
-        assertEquals("queued_signals", config.paper().signalSource().strategyName());
+        assertEquals("queued_actions", config.paper().actionSource().strategyName());
         assertEquals(15000.0, config.paper().binance().recvWindowMillis());
     }
 
@@ -26,5 +26,14 @@ class ApplicationConfigLoaderTest {
                 () -> new ApplicationConfigLoader("paper-config-place-order.yml").load());
 
         assertTrue(exception.getMessage().contains("not supported in phase 1"));
+    }
+
+    @Test
+    void load_rejectsUnsupportedPaperActionSourceStrategy() {
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> new ApplicationConfigLoader("paper-config-unsupported-strategy.yml").load());
+
+        assertTrue(exception.getMessage().contains("strategyName=ema_cross"));
     }
 }

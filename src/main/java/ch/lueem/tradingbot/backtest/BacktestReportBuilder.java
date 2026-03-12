@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.integration.backtest;
+package ch.lueem.tradingbot.backtest;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -11,14 +11,14 @@ import ch.lueem.tradingbot.backtest.model.BacktestPositionReport;
 import ch.lueem.tradingbot.backtest.model.BacktestReport;
 import ch.lueem.tradingbot.bot.model.BotMode;
 import ch.lueem.tradingbot.runtime.RuntimeCycleResult;
-import ch.lueem.tradingbot.strategy.signal.TradeSignal;
+import ch.lueem.tradingbot.strategy.action.TradeAction;
 
 /**
  * Builds the backtest report from shared runtime cycle results.
  */
 public class BacktestReportBuilder {
 
-    private static final String EXECUTION_MODEL = "signal_bar_close";
+    private static final String EXECUTION_MODEL = "action_bar_close";
     private static final String POSITION_SIZING_MODEL = "all_in_spot";
     private static final int MONEY_SCALE = 4;
 
@@ -76,7 +76,7 @@ public class BacktestReportBuilder {
                 continue;
             }
 
-            if (cycleResult.tradeSignal() == TradeSignal.BUY) {
+            if (cycleResult.action() == TradeAction.BUY) {
                 openPosition = new PositionAccumulator(
                         cycleResult.marketSnapshot().observedAt().toString(),
                         roundToFourDecimals(cycleResult.marketSnapshot().lastPrice().doubleValue()),
@@ -84,7 +84,7 @@ public class BacktestReportBuilder {
                 continue;
             }
 
-            if (cycleResult.tradeSignal() == TradeSignal.SELL && openPosition != null) {
+            if (cycleResult.action() == TradeAction.SELL && openPosition != null) {
                 BigDecimal exitPrice = roundToFourDecimals(cycleResult.marketSnapshot().lastPrice().doubleValue());
                 BigDecimal positionValueAtEntry = openPosition.quantity.multiply(openPosition.entryPrice);
                 BigDecimal pnl = openPosition.quantity.multiply(exitPrice).subtract(positionValueAtEntry).setScale(MONEY_SCALE, RoundingMode.HALF_UP);

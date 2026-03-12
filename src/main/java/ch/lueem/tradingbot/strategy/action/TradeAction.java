@@ -1,9 +1,9 @@
-package ch.lueem.tradingbot.strategy.signal;
+package ch.lueem.tradingbot.strategy.action;
 
 /**
  * Represents the high-level trade decision produced by a strategy.
  */
-public enum TradeSignal {
+public enum TradeAction {
     BUY,
     SELL,
     HOLD

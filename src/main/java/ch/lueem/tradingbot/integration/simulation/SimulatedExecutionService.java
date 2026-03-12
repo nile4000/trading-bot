@@ -9,6 +9,7 @@ import ch.lueem.tradingbot.execution.ExecutionService;
 import ch.lueem.tradingbot.execution.ExecutionStatus;
 import ch.lueem.tradingbot.portfolio.PortfolioSnapshot;
 import ch.lueem.tradingbot.portfolio.PositionSnapshot;
+import ch.lueem.tradingbot.strategy.action.TradeAction;
 
 /**
  * Simulates all-in spot executions without talking to a real exchange.
@@ -35,8 +36,8 @@ public class SimulatedExecutionService implements ExecutionService {
         PortfolioSnapshot snapshot = portfolioService.getSnapshot(request.symbol());
         PositionSnapshot position = snapshot.position();
 
-        return switch (request.tradeSignal()) {
-            case HOLD -> new ExecutionResult(ExecutionStatus.SKIPPED, false, position.open(), "No execution for HOLD signal.");
+        return switch (request.tradeAction()) {
+            case HOLD -> new ExecutionResult(ExecutionStatus.SKIPPED, false, position.open(), "No execution for HOLD action.");
             case BUY -> handleBuy(request, snapshot, position);
             case SELL -> handleSell(request, position);
         };

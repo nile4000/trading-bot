@@ -54,7 +54,7 @@ class BacktestReportJsonPrinterTest {
                         30,
                         "2025-01-01T00:00:00Z",
                         "2025-01-02T00:00:00Z",
-                        "signal_bar_close",
+                        "action_bar_close",
                         "all_in_spot",
                         strategy),
                 3,
@@ -79,7 +79,7 @@ class BacktestReportJsonPrinterTest {
 
         assertEquals("v3", root.get("reportVersion").asText());
         assertEquals("BTCUSDT", metadata.get("symbol").asText());
-        assertEquals("signal_bar_close", metadata.get("executionModel").asText());
+        assertEquals("action_bar_close", metadata.get("executionModel").asText());
         assertTrue(performance.get("hasOpenPosition").asBoolean());
         assertEquals(1, positions.size());
         assertEquals("OPEN", positions.get(0).get("status").asText());
@@ -108,7 +108,7 @@ class BacktestReportJsonPrinterTest {
                         30,
                         "2025-01-01T00:00:00Z",
                         "2025-01-02T00:00:00Z",
-                        "signal_bar_close",
+                        "action_bar_close",
                         "all_in_spot",
                         strategy),
                 2,

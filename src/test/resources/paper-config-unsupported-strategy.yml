@@ -8,12 +8,12 @@ paper:
     timeframe: 1m
   execution:
     exchange: BINANCE_SPOT_TESTNET
-    orderMode: PLACE_ORDER
+    orderMode: VALIDATE_ONLY
     tickIntervalMillis: 10000
     initialCash: 1000.0
     orderQuantity: 0.0001
   actionSource:
-    strategyName: queued_actions
+    strategyName: ema_cross
     actions:
     - BUY
     - SELL

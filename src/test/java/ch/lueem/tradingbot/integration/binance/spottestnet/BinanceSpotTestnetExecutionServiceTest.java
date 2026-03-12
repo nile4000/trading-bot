@@ -1,7 +1,6 @@
 package ch.lueem.tradingbot.integration.binance.spottestnet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -12,7 +11,8 @@ import ch.lueem.tradingbot.application.PaperOrderMode;
 import ch.lueem.tradingbot.execution.ExecutionRequest;
 import ch.lueem.tradingbot.execution.ExecutionResult;
 import ch.lueem.tradingbot.execution.ExecutionStatus;
-import ch.lueem.tradingbot.strategy.signal.TradeSignal;
+import ch.lueem.tradingbot.integration.paper.PaperPortfolioService;
+import ch.lueem.tradingbot.strategy.action.TradeAction;
 import com.binance.connector.client.spot.rest.model.OrderTestRequest;
 import org.junit.jupiter.api.Test;
 
@@ -24,14 +24,15 @@ class BinanceSpotTestnetExecutionServiceTest {
         BinanceSpotTestnetExecutionService service =
                 new BinanceSpotTestnetExecutionService(
                         client,
+                        new PaperPortfolioService("BTCUSDT", new BigDecimal("1000.0000")),
                         new BigDecimal("0.0100"),
                         15000.0,
                         PaperOrderMode.VALIDATE_ONLY);
 
-        ExecutionResult result = service.execute(request(TradeSignal.BUY));
+        ExecutionResult result = service.execute(request(TradeAction.BUY));
 
         assertEquals(ExecutionStatus.VALIDATED, result.status());
-        assertFalse(result.executed());
+        assertTrue(result.executed());
         assertEquals("BTCUSDT", client.lastRequest.getSymbol());
         assertEquals("BUY", client.lastRequest.getSide().getValue());
         assertEquals(0.01d, client.lastRequest.getQuantity());
@@ -44,14 +45,15 @@ class BinanceSpotTestnetExecutionServiceTest {
         BinanceSpotTestnetExecutionService service =
                 new BinanceSpotTestnetExecutionService(
                         client,
+                        paperPortfolioWithOpenPosition(),
                         new BigDecimal("0.0200"),
                         15000.0,
                         PaperOrderMode.VALIDATE_ONLY);
 
-        ExecutionResult result = service.execute(request(TradeSignal.SELL));
+        ExecutionResult result = service.execute(request(TradeAction.SELL));
 
         assertEquals(ExecutionStatus.VALIDATED, result.status());
-        assertFalse(result.executed());
+        assertTrue(result.executed());
         assertEquals("SELL", client.lastRequest.getSide().getValue());
         assertEquals(0.02d, client.lastRequest.getQuantity());
     }
@@ -63,14 +65,15 @@ class BinanceSpotTestnetExecutionServiceTest {
         BinanceSpotTestnetExecutionService service =
                 new BinanceSpotTestnetExecutionService(
                         client,
+                        new PaperPortfolioService("BTCUSDT", new BigDecimal("1000.0000")),
                         new BigDecimal("0.0100"),
                         15000.0,
                         PaperOrderMode.VALIDATE_ONLY);
 
         IllegalStateException exception =
-                assertThrows(IllegalStateException.class, () -> service.execute(request(TradeSignal.BUY)));
+                assertThrows(IllegalStateException.class, () -> service.execute(request(TradeAction.BUY)));
 
-        assertTrue(exception.getMessage().contains("BUY order"));
+        assertTrue(exception.getMessage().contains("BUY action"));
         assertTrue(exception.getMessage().contains("BTCUSDT"));
     }
 
@@ -82,6 +85,7 @@ class BinanceSpotTestnetExecutionServiceTest {
                 IllegalStateException.class,
                 () -> new BinanceSpotTestnetExecutionService(
                         client,
+                        new PaperPortfolioService("BTCUSDT", new BigDecimal("1000.0000")),
                         new BigDecimal("0.0100"),
                         15000.0,
                         PaperOrderMode.PLACE_ORDER));
@@ -89,14 +93,24 @@ class BinanceSpotTestnetExecutionServiceTest {
         assertTrue(exception.getMessage().contains("VALIDATE_ONLY"));
     }
 
-    private ExecutionRequest request(TradeSignal signal) {
+    private ExecutionRequest request(TradeAction action) {
         return new ExecutionRequest(
                 "runtime-1",
                 "BTCUSDT",
                 "1m",
-                signal,
+                action,
                 OffsetDateTime.parse("2026-03-12T10:15:30Z"),
                 new BigDecimal("80000.00"));
+    }
+
+    private PaperPortfolioService paperPortfolioWithOpenPosition() {
+        PaperPortfolioService portfolioService = new PaperPortfolioService("BTCUSDT", new BigDecimal("1000.0000"));
+        portfolioService.openPosition(
+                "BTCUSDT",
+                new BigDecimal("0.02000000"),
+                new BigDecimal("40000.0000"),
+                OffsetDateTime.parse("2026-03-12T10:14:30Z"));
+        return portfolioService;
     }
 
     private static final class CapturingClient implements BinanceSpotTestnetClient {

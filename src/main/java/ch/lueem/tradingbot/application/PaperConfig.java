@@ -10,7 +10,7 @@ import ch.lueem.tradingbot.strategy.definition.StrategyDefinition;
 public record PaperConfig(
         PaperBotConfig bot,
         PaperExecutionConfig execution,
-        PaperSignalSourceConfig signalSource,
+        PaperActionSourceConfig actionSource,
         BinanceSpotTestnetConfig binance
 ) {
     public void validate() {
@@ -20,8 +20,8 @@ public record PaperConfig(
         if (execution == null) {
             throw new IllegalStateException("Missing 'paper.execution' section in application.yml.");
         }
-        if (signalSource == null) {
-            throw new IllegalStateException("Missing 'paper.signalSource' section in application.yml.");
+        if (actionSource == null) {
+            throw new IllegalStateException("Missing 'paper.actionSource' section in application.yml.");
         }
         if (binance == null) {
             throw new IllegalStateException("Missing 'paper.binance' section in application.yml.");
@@ -29,7 +29,7 @@ public record PaperConfig(
 
         bot.validate();
         execution.validate();
-        signalSource.validate();
+        actionSource.validate();
         binance.validate();
     }
 
@@ -41,6 +41,6 @@ public record PaperConfig(
                 BotMode.PAPER,
                 bot.symbol(),
                 bot.timeframe(),
-                new StrategyDefinition(signalSource.strategyName(), null));
+                new StrategyDefinition(actionSource.strategyName(), null));
     }
 }

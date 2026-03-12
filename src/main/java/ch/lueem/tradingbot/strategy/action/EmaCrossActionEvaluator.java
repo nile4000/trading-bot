@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.strategy.signal;
+package ch.lueem.tradingbot.strategy.action;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -6,14 +6,14 @@ import java.util.List;
 import ch.lueem.tradingbot.strategy.definition.StrategyParameters;
 
 /**
- * Evaluates EMA-cross signals from close-price history for backtest and runtime flows.
+ * Evaluates EMA-cross actions from close-price history for backtest and runtime flows.
  */
-public class EmaCrossSignalEvaluator implements StrategySignalEvaluator {
+public class EmaCrossActionEvaluator implements StrategyActionEvaluator {
 
     private final int shortLength;
     private final int longLength;
 
-    public EmaCrossSignalEvaluator(StrategyParameters parameters) {
+    public EmaCrossActionEvaluator(StrategyParameters parameters) {
         if (parameters == null) {
             throw new IllegalArgumentException("parameters must not be null.");
         }
@@ -28,14 +28,14 @@ public class EmaCrossSignalEvaluator implements StrategySignalEvaluator {
     }
 
     @Override
-    public TradeSignal evaluate(SignalContext context) {
+    public TradeAction evaluate(ActionContext context) {
         if (context == null) {
             throw new IllegalArgumentException("context must not be null.");
         }
 
         List<BigDecimal> history = context.closePriceHistory();
         if (history == null || history.size() <= longLength) {
-            return TradeSignal.HOLD;
+            return TradeAction.HOLD;
         }
 
         double previousShort = calculateEma(history, shortLength, history.size() - 1);
@@ -44,12 +44,12 @@ public class EmaCrossSignalEvaluator implements StrategySignalEvaluator {
         double currentLong = calculateEma(history, longLength, history.size());
 
         if (!context.openPosition() && previousShort <= previousLong && currentShort > currentLong) {
-            return TradeSignal.BUY;
+            return TradeAction.BUY;
         }
         if (context.openPosition() && previousShort >= previousLong && currentShort < currentLong) {
-            return TradeSignal.SELL;
+            return TradeAction.SELL;
         }
-        return TradeSignal.HOLD;
+        return TradeAction.HOLD;
     }
 
     private double calculateEma(List<BigDecimal> history, int length, int itemCount) {
