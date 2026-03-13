@@ -281,10 +281,6 @@ public class ReportGenerator {
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal calculateFinalValue(RuntimeCycleResult lastCycle) {
-        return calculateEquity(lastCycle);
-    }
-
     private BigDecimal calculateEquity(RuntimeCycleResult cycleResult) {
         var equity = cycleResult.portfolioSnapshot().availableCash();
         if (cycleResult.portfolioSnapshot().position().open()) {

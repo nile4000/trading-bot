@@ -109,7 +109,6 @@ public interface TradingBotRuntimeConfig {
         double recvWindowMillis();
 
         @NotBlank
-        @WithDefault("https://testnet.binance.vision")
         String baseUrl();
     }
 

@@ -10,7 +10,6 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 import ch.lueem.tradingbot.core.runtime.BotMode;
-import ch.lueem.tradingbot.core.runtime.MarketSnapshot;
 import ch.lueem.tradingbot.core.runtime.TradingDefinition;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import org.junit.jupiter.api.Test;

@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 
 class PaperBotSetupTest {
 
+    private static final String TEST_REST_BASE_URL = "https://testnet.binance.vision";
+
     @Test
     void createContext_failsWhenRequiredCredentialsAreMissing() {
         PaperBotSetup setup = new PaperBotSetup(new StubClientFactory());
@@ -39,7 +41,7 @@ class PaperBotSetupTest {
 
         assertEquals("api-key", clientFactory.apiKey);
         assertEquals("secret-key", clientFactory.secretKey);
-        assertEquals("https://testnet.binance.vision", session.restBaseUrl());
+        assertEquals(TEST_REST_BASE_URL, session.restBaseUrl());
     }
 
     @Test
@@ -106,6 +108,10 @@ class PaperBotSetupTest {
     }
 
     private static final class StubClientFactory extends ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory {
+        private StubClientFactory() {
+            super(TEST_REST_BASE_URL);
+        }
+
         @Override
         public ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient create(
                 String apiKey,
@@ -117,6 +123,10 @@ class PaperBotSetupTest {
     private static final class CapturingClientFactory extends ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory {
         private String apiKey;
         private String secretKey;
+
+        private CapturingClientFactory() {
+            super(TEST_REST_BASE_URL);
+        }
 
         @Override
         public ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient create(
@@ -132,6 +142,7 @@ class PaperBotSetupTest {
         private final String[] prices;
 
         private SequencedClientFactory(String... prices) {
+            super(TEST_REST_BASE_URL);
             this.prices = prices;
         }
 
@@ -146,7 +157,7 @@ class PaperBotSetupTest {
     private static final class StubClient implements ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient {
         @Override
         public String baseUrl() {
-            return "https://testnet.binance.vision";
+            return TEST_REST_BASE_URL;
         }
 
         @Override
@@ -176,7 +187,7 @@ class PaperBotSetupTest {
 
         @Override
         public String baseUrl() {
-            return "https://testnet.binance.vision";
+            return TEST_REST_BASE_URL;
         }
 
         @Override

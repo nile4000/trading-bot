@@ -4,17 +4,11 @@ import com.binance.connector.client.common.configuration.ClientConfiguration;
 import com.binance.connector.client.common.configuration.SignatureConfiguration;
 
 /**
- * Creates Binance REST clients. The default base URL points to Spot Testnet.
+ * Creates Binance REST clients for the configured REST base URL.
  */
 public class BinanceClientFactory {
 
-    public static final String TESTNET_REST_BASE_URL = "https://testnet.binance.vision";
-
     private final String baseUrl;
-
-    public BinanceClientFactory() {
-        this(TESTNET_REST_BASE_URL);
-    }
 
     public BinanceClientFactory(String baseUrl) {
         if (baseUrl == null || baseUrl.isBlank()) {
