@@ -20,18 +20,18 @@ import org.ta4j.core.BaseBarSeriesBuilder;
  * Loads the latest symbol price from Binance Spot Testnet and keeps a simple
  * close-price history for strategy evaluation.
  */
-public class BinanceTickerPriceMarketSnapshotProvider implements MarketSnapshotProvider {
+public class BinancePriceSnapshotProvider implements MarketSnapshotProvider {
 
     private final BinanceClient client;
     private final Clock clock;
     private final BarSeries series;
     private final List<BigDecimal> closePriceHistory;
 
-    public BinanceTickerPriceMarketSnapshotProvider(BinanceClient client) {
+    public BinancePriceSnapshotProvider(BinanceClient client) {
         this(client, Clock.systemUTC());
     }
 
-    BinanceTickerPriceMarketSnapshotProvider(BinanceClient client, Clock clock) {
+    BinancePriceSnapshotProvider(BinanceClient client, Clock clock) {
         if (client == null || clock == null) {
             throw new IllegalArgumentException("client and clock must not be null.");
         }

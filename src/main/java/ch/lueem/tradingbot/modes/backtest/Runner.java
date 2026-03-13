@@ -8,7 +8,7 @@ import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
 import ch.lueem.tradingbot.adapters.market.CsvBarSeriesLoader;
 import ch.lueem.tradingbot.core.time.Timeframes;
 import ch.lueem.tradingbot.modes.backtest.model.Report;
-import ch.lueem.tradingbot.adapters.market.CsvHistoricalMarketSnapshotProvider;
+import ch.lueem.tradingbot.adapters.market.CsvMarketSnapshotProvider;
 import ch.lueem.tradingbot.adapters.execution.simulated.SimulatedExecutionService;
 import ch.lueem.tradingbot.adapters.portfolio.SimulatedPortfolioService;
 import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
@@ -71,8 +71,8 @@ public class Runner {
                 Timeframes.parse(config.timeframe()));
     }
 
-    private CsvHistoricalMarketSnapshotProvider createMarketSnapshotProvider(BacktestConfig config, BarSeries series) {
-        return new CsvHistoricalMarketSnapshotProvider(series, config.symbol(), config.timeframe());
+    private CsvMarketSnapshotProvider createMarketSnapshotProvider(BacktestConfig config, BarSeries series) {
+        return new CsvMarketSnapshotProvider(series, config.symbol(), config.timeframe());
     }
 
     private SimulatedPortfolioService createPortfolioService(BacktestConfig config) {

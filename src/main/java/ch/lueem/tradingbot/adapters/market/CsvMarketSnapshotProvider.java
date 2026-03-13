@@ -15,12 +15,12 @@ import org.ta4j.core.BarSeries;
 /**
  * Replays historical CSV bars as sequential market snapshots for the shared runtime.
  */
-public class CsvHistoricalMarketSnapshotProvider implements MarketSnapshotProvider {
+public class CsvMarketSnapshotProvider implements MarketSnapshotProvider {
 
     private final BarSeries series;
     private int nextIndex;
 
-    public CsvHistoricalMarketSnapshotProvider(
+    public CsvMarketSnapshotProvider(
             CsvBarSeriesLoader csvBarSeriesLoader,
             Path csvPath,
             String symbol,
@@ -28,7 +28,7 @@ public class CsvHistoricalMarketSnapshotProvider implements MarketSnapshotProvid
         this(loadSeries(csvBarSeriesLoader, csvPath, symbol, timeframe), symbol, timeframe);
     }
 
-    public CsvHistoricalMarketSnapshotProvider(BarSeries series, String symbol, String timeframe) {
+    public CsvMarketSnapshotProvider(BarSeries series, String symbol, String timeframe) {
         if (series == null) {
             throw new IllegalArgumentException("series must not be null.");
         }

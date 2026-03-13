@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
 
-class CsvHistoricalMarketSnapshotProviderTest {
+class CsvMarketSnapshotProviderTest {
 
     @Test
     void load_buildsSnapshotsLazilyFromSeries() {
@@ -21,7 +21,7 @@ class CsvHistoricalMarketSnapshotProviderTest {
         addBar(series, "2026-03-12T22:21:00Z", "101");
         addBar(series, "2026-03-12T22:22:00Z", "102");
 
-        var provider = new CsvHistoricalMarketSnapshotProvider(series, "BTCUSDT", "1m");
+        var provider = new CsvMarketSnapshotProvider(series, "BTCUSDT", "1m");
         var definition = backtestDefinition();
 
         var first = provider.load(definition);
@@ -46,7 +46,7 @@ class CsvHistoricalMarketSnapshotProviderTest {
         addBar(series, "2026-03-12T22:20:00Z", "0.12345678");
         addBar(series, "2026-03-12T22:21:00Z", "123456.78901234");
 
-        var provider = new CsvHistoricalMarketSnapshotProvider(series, "BTCUSDT", "1m");
+        var provider = new CsvMarketSnapshotProvider(series, "BTCUSDT", "1m");
         var definition = backtestDefinition();
 
         var first = provider.load(definition);

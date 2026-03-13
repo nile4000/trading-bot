@@ -14,11 +14,11 @@ import ch.lueem.tradingbot.core.runtime.TradingDefinition;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import org.junit.jupiter.api.Test;
 
-class BinanceTickerPriceMarketSnapshotProviderTest {
+class BinancePriceSnapshotProviderTest {
 
     @Test
     void load_updatesCurrentBarWithinSameTimeframe() {
-        var provider = new BinanceTickerPriceMarketSnapshotProvider(
+        var provider = new BinancePriceSnapshotProvider(
                 new StubClient("100.00", "101.00", "102.00"),
                 new SequenceClock(
                         "2026-03-12T22:19:41Z",
@@ -46,7 +46,7 @@ class BinanceTickerPriceMarketSnapshotProviderTest {
 
     @Test
     void load_appendsNewBarWhenTimeframeBoundaryIsCrossed() {
-        var provider = new BinanceTickerPriceMarketSnapshotProvider(
+        var provider = new BinancePriceSnapshotProvider(
                 new StubClient("100.00", "101.00", "102.00"),
                 new SequenceClock(
                         "2026-03-12T22:19:41Z",

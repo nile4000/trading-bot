@@ -7,7 +7,7 @@ import ch.lueem.tradingbot.adapters.config.paper.PaperExchange;
 import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
 import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory;
 import ch.lueem.tradingbot.adapters.execution.binance.flow.BinancePaperExecutionService;
-import ch.lueem.tradingbot.adapters.market.BinanceTickerPriceMarketSnapshotProvider;
+import ch.lueem.tradingbot.adapters.market.BinancePriceSnapshotProvider;
 import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.core.runtime.TradingRuntime;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorContext;
@@ -41,7 +41,7 @@ public class PaperBotSetup {
         ensureSupportedExchange(paper);
 
         var client = createClient(paper);
-        var marketSnapshotProvider = new BinanceTickerPriceMarketSnapshotProvider(client);
+        var marketSnapshotProvider = new BinancePriceSnapshotProvider(client);
         var portfolioService = createPortfolioService(paper);
         var runtime = createRuntime(paper, client, marketSnapshotProvider, portfolioService);
         return new PaperBotSession(runtime, paper, client.baseUrl());
@@ -75,7 +75,7 @@ public class PaperBotSetup {
     private TradingRuntime createRuntime(
             PaperConfig paper,
             BinanceClient client,
-            BinanceTickerPriceMarketSnapshotProvider marketSnapshotProvider,
+            BinancePriceSnapshotProvider marketSnapshotProvider,
             PaperPortfolioService portfolioService) {
         var evaluator = strategyFactory.create(
                 paper.strategy().toStrategyDefinition(),
