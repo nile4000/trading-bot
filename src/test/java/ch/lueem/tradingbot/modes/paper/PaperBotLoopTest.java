@@ -60,7 +60,7 @@ class PaperBotLoopTest {
 
     private PaperBotSession session(AtomicInteger executions) {
         TradingRuntime runtime = new TradingRuntime(
-                new TradingDefinition("bot-1", "v1", BotMode.PAPER, "BTCUSDT", "1m", new StrategyDefinition("queued_actions", null)),
+                queuedDefinition(),
                 new SequenceMarketSnapshotProvider(List.of(
                         new MarketSnapshot("BTCUSDT", "1m", OffsetDateTime.parse("2026-03-12T10:15:30Z"), new BigDecimal("100.00"), List.of(new BigDecimal("100.00")), 0),
                         new MarketSnapshot("BTCUSDT", "1m", OffsetDateTime.parse("2026-03-12T10:16:30Z"), new BigDecimal("101.00"), List.of(new BigDecimal("100.00"), new BigDecimal("101.00")), 1))),
@@ -68,18 +68,7 @@ class PaperBotLoopTest {
                 new QueuedActionEvaluator(List.of(TradeAction.BUY, TradeAction.SELL)),
                 new CountingExecutionService(executions));
 
-        PaperConfig paper = new PaperConfig(
-                new PaperBotConfig("bot-1", "v1", "BTCUSDT", "1m"),
-                new PaperExecutionConfig(
-                        PaperExchange.BINANCE_SPOT_TESTNET,
-                        PaperOrderMode.VALIDATE_ONLY,
-                        250L,
-                        1000.0,
-                        new BigDecimal("0.0010"),
-                        false,
-                        new BigDecimal("25.0")),
-                new PaperStrategyConfig("queued_actions", null, List.of(TradeAction.BUY, TradeAction.SELL)),
-                new BinanceConfig("api-key", "secret-key", 15000.0));
+        PaperConfig paper = paperConfig();
         return new PaperBotSession(runtime, paper, "https://testnet.binance.vision");
     }
 
@@ -118,5 +107,30 @@ class PaperBotLoopTest {
             executions.incrementAndGet();
             return new Result(Status.VALIDATED, false, false, "validated_only");
         }
+    }
+
+    private TradingDefinition queuedDefinition() {
+        return new TradingDefinition(
+                "bot-1",
+                "v1",
+                BotMode.PAPER,
+                "BTCUSDT",
+                "1m",
+                new StrategyDefinition("queued_actions", null));
+    }
+
+    private PaperConfig paperConfig() {
+        return new PaperConfig(
+                new PaperBotConfig("bot-1", "v1", "BTCUSDT", "1m"),
+                new PaperExecutionConfig(
+                        PaperExchange.BINANCE_SPOT_TESTNET,
+                        PaperOrderMode.VALIDATE_ONLY,
+                        250L,
+                        1000.0,
+                        new BigDecimal("0.0010"),
+                        false,
+                        new BigDecimal("25.0")),
+                new PaperStrategyConfig("queued_actions", null, List.of(TradeAction.BUY, TradeAction.SELL)),
+                new BinanceConfig("api-key", "secret-key", 15000.0));
     }
 }

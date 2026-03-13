@@ -2,11 +2,11 @@ package ch.lueem.tradingbot.adapters.market;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.AbstractList;
 import java.util.List;
 
+import ch.lueem.tradingbot.core.time.Timeframes;
 import ch.lueem.tradingbot.core.runtime.MarketSnapshot;
 import ch.lueem.tradingbot.core.runtime.MarketSnapshotProvider;
 import ch.lueem.tradingbot.core.runtime.TradingDefinition;
@@ -91,18 +91,6 @@ public class CsvHistoricalMarketSnapshotProvider implements MarketSnapshotProvid
         };
     }
 
-    public static Duration parseTimeframe(String timeframe) {
-        return switch (timeframe) {
-            case "1m" -> Duration.ofMinutes(1);
-            case "5m" -> Duration.ofMinutes(5);
-            case "15m" -> Duration.ofMinutes(15);
-            case "1h" -> Duration.ofHours(1);
-            case "4h" -> Duration.ofHours(4);
-            case "1d" -> Duration.ofDays(1);
-            default -> throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
-        };
-    }
-
     private static BarSeries loadSeries(
             CsvBarSeriesLoader csvBarSeriesLoader,
             Path csvPath,
@@ -114,7 +102,7 @@ public class CsvHistoricalMarketSnapshotProvider implements MarketSnapshotProvid
         if ((symbol == null || symbol.isBlank()) || (timeframe == null || timeframe.isBlank())) {
             throw new IllegalArgumentException("symbol and timeframe must not be blank.");
         }
-        return csvBarSeriesLoader.load(csvPath, symbol + "-" + timeframe, parseTimeframe(timeframe));
+        return csvBarSeriesLoader.load(csvPath, symbol + "-" + timeframe, Timeframes.parse(timeframe));
     }
 
     private static BigDecimal toBigDecimal(org.ta4j.core.num.Num value) {

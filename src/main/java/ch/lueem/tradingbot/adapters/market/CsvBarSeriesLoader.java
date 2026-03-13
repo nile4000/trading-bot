@@ -8,12 +8,14 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 
+import jakarta.inject.Singleton;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
 
 /**
  * Loads OHLCV bars from a simple CSV file into a ta4j BarSeries.
  */
+@Singleton
 public class CsvBarSeriesLoader {
 
     private static final String EXPECTED_HEADER = "timestamp,open,high,low,close,volume";

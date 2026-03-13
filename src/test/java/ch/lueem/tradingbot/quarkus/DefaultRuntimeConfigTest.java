@@ -16,13 +16,10 @@ class DefaultRuntimeConfigTest {
 
     @Inject
     BacktestConfig backtestConfig;
-
     @Inject
     PaperConfig paperConfig;
-
     @Inject
     ReportingConfig reportingConfig;
-
     @Inject
     TradingBotRuntimeConfig runtimeConfig;
 

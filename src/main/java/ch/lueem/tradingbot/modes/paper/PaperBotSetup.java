@@ -12,11 +12,14 @@ import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.core.runtime.TradingRuntime;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorContext;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorFactory;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * Resolves secrets and infrastructure dependencies for the configured paper bot
  * session.
  */
+@Singleton
 public class PaperBotSetup {
 
     private final BinanceClientFactory clientFactory;
@@ -26,6 +29,7 @@ public class PaperBotSetup {
         this(clientFactory, new StrategyEvaluatorFactory());
     }
 
+    @Inject
     public PaperBotSetup(
             BinanceClientFactory clientFactory,
             StrategyEvaluatorFactory strategyFactory) {

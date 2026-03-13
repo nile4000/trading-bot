@@ -66,6 +66,7 @@ class ReportGeneratorPrecisionTest {
         assertEquals("20.0000", report.maxDrawdownPercent().toPlainString());
         assertEquals("-1111.0000", report.averageLosingTrade().toPlainString());
         assertEquals("-11.1111", report.totalReturnPercent().toPlainString());
+        assertEquals("0.0833", report.timeInMarketDays().toPlainString());
     }
 
     private RuntimeCycleResult cycle(

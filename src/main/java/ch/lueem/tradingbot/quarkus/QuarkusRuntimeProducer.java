@@ -11,17 +11,8 @@ import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperExecutionConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperStrategyConfig;
 import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory;
-import ch.lueem.tradingbot.adapters.market.CsvBarSeriesLoader;
-import ch.lueem.tradingbot.adapters.reporting.BacktestReportJsonPrinter;
-import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorFactory;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyParameters;
-import ch.lueem.tradingbot.modes.backtest.BacktestService;
-import ch.lueem.tradingbot.modes.backtest.ReportGenerator;
-import ch.lueem.tradingbot.modes.backtest.Runner;
-import ch.lueem.tradingbot.modes.paper.PaperBotLoop;
-import ch.lueem.tradingbot.modes.paper.PaperBotService;
-import ch.lueem.tradingbot.modes.paper.PaperBotSetup;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 
@@ -81,65 +72,6 @@ public class QuarkusRuntimeProducer {
     @Singleton
     BinanceClientFactory binanceClientFactory(TradingBotRuntimeConfig config) {
         return new BinanceClientFactory(config.paper().binance().baseUrl());
-    }
-
-    @Produces
-    @Singleton
-    StrategyEvaluatorFactory strategyEvaluatorFactory() {
-        return new StrategyEvaluatorFactory();
-    }
-
-    @Produces
-    @Singleton
-    CsvBarSeriesLoader csvBarSeriesLoader() {
-        return new CsvBarSeriesLoader();
-    }
-
-    @Produces
-    @Singleton
-    ReportGenerator reportGenerator() {
-        return new ReportGenerator();
-    }
-
-    @Produces
-    @Singleton
-    Runner backtestRunner(
-            CsvBarSeriesLoader csvBarSeriesLoader,
-            ReportGenerator reportGenerator,
-            StrategyEvaluatorFactory strategyEvaluatorFactory) {
-        return new Runner(csvBarSeriesLoader, reportGenerator, strategyEvaluatorFactory);
-    }
-
-    @Produces
-    @Singleton
-    BacktestReportJsonPrinter backtestReportJsonPrinter() {
-        return new BacktestReportJsonPrinter();
-    }
-
-    @Produces
-    @Singleton
-    BacktestService backtestService(Runner backtestRunner, BacktestReportJsonPrinter reportPrinter) {
-        return new BacktestService(backtestRunner, reportPrinter);
-    }
-
-    @Produces
-    @Singleton
-    PaperBotSetup paperBotSetup(
-            BinanceClientFactory clientFactory,
-            StrategyEvaluatorFactory strategyEvaluatorFactory) {
-        return new PaperBotSetup(clientFactory, strategyEvaluatorFactory);
-    }
-
-    @Produces
-    @Singleton
-    PaperBotLoop paperBotLoop() {
-        return new PaperBotLoop();
-    }
-
-    @Produces
-    @Singleton
-    PaperBotService paperBotService(PaperBotSetup setup, PaperBotLoop loop) {
-        return new PaperBotService(setup, loop);
     }
 
     private StrategyDefinition toStrategyDefinition(TradingBotRuntimeConfig.Strategy strategy) {

@@ -28,7 +28,7 @@ class BacktestReportJsonPrinterTest {
     @Test
     void print_omitsPositionsFromJson() throws Exception {
         BacktestReportJsonPrinter printer = new BacktestReportJsonPrinter();
-        StrategyDefinition strategy = new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
+        StrategyDefinition strategy = strategy();
         Position openPosition = new Position(
                 1,
                 "OPEN",
@@ -39,12 +39,7 @@ class BacktestReportJsonPrinterTest {
                 new BigDecimal("0.1010"),
                 new BigDecimal("-183.4862"),
                 new BigDecimal("-1.8349"));
-        BacktestConfig config = new BacktestConfig(
-                Path.of("data/historical/BTCUSDT-1h.csv"),
-                "BTCUSDT",
-                "1h",
-                strategy,
-                new PortfolioConfig(10000.0));
+        BacktestConfig config = config(strategy);
         Report report = new Report(
                 new Metadata(
                         BotMode.BACKTEST,
@@ -103,13 +98,8 @@ class BacktestReportJsonPrinterTest {
     @Test
     void print_usesCompactPerformanceSchemaWhenNoPositionIsOpen() throws Exception {
         BacktestReportJsonPrinter printer = new BacktestReportJsonPrinter();
-        StrategyDefinition strategy = new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
-        BacktestConfig config = new BacktestConfig(
-                Path.of("data/historical/BTCUSDT-1h.csv"),
-                "BTCUSDT",
-                "1h",
-                strategy,
-                new PortfolioConfig(10000.0));
+        StrategyDefinition strategy = strategy();
+        BacktestConfig config = config(strategy);
         Report report = new Report(
                 new Metadata(
                         BotMode.BACKTEST,
@@ -152,5 +142,18 @@ class BacktestReportJsonPrinterTest {
         assertEquals(0, new BigDecimal("0.0000").compareTo(performance.get("exposurePercent").decimalValue()));
         assertFalse(root.has("positions"));
         assertEquals(1, root.get("notes").size());
+    }
+
+    private StrategyDefinition strategy() {
+        return new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
+    }
+
+    private BacktestConfig config(StrategyDefinition strategy) {
+        return new BacktestConfig(
+                Path.of("data/historical/BTCUSDT-1h.csv"),
+                "BTCUSDT",
+                "1h",
+                strategy,
+                new PortfolioConfig(10000.0));
     }
 }

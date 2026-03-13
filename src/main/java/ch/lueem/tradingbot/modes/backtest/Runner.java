@@ -6,6 +6,7 @@ import java.util.List;
 
 import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
 import ch.lueem.tradingbot.adapters.market.CsvBarSeriesLoader;
+import ch.lueem.tradingbot.core.time.Timeframes;
 import ch.lueem.tradingbot.modes.backtest.model.Report;
 import ch.lueem.tradingbot.adapters.market.CsvHistoricalMarketSnapshotProvider;
 import ch.lueem.tradingbot.adapters.execution.simulated.SimulatedExecutionService;
@@ -15,12 +16,15 @@ import ch.lueem.tradingbot.core.runtime.TradingRuntime;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorContext;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorFactory;
 import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.ta4j.core.BarSeries;
 
 /**
  * Coordinates CSV loading, strategy creation and result calculation for one
  * backtest run.
  */
+@Singleton
 public class Runner {
 
     private final CsvBarSeriesLoader csvBarSeriesLoader;
@@ -33,6 +37,7 @@ public class Runner {
                 new StrategyEvaluatorFactory());
     }
 
+    @Inject
     public Runner(
             CsvBarSeriesLoader csvBarSeriesLoader,
             ReportGenerator reportGenerator,
@@ -63,7 +68,7 @@ public class Runner {
         return csvBarSeriesLoader.load(
                 config.csvPath(),
                 config.symbol() + "-" + config.timeframe(),
-                CsvHistoricalMarketSnapshotProvider.parseTimeframe(config.timeframe()));
+                Timeframes.parse(config.timeframe()));
     }
 
     private CsvHistoricalMarketSnapshotProvider createMarketSnapshotProvider(BacktestConfig config, BarSeries series) {

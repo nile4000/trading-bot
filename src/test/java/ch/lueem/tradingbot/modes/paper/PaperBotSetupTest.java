@@ -56,16 +56,7 @@ class PaperBotSetupTest {
     void createContext_keepsUpdatingTheCurrentPaperBarUntilTheTimeframeChanges() {
         SequencedClientFactory clientFactory = new SequencedClientFactory("10", "9", "12", "13", "14", "15");
         PaperBotSetup setup = new PaperBotSetup(clientFactory);
-        PaperBotSession session = setup.createSession(new PaperConfig(
-                new PaperBotConfig("bot-1", "v1", "BTCUSDT", "1m"),
-                new PaperExecutionConfig(
-                        PaperExchange.BINANCE_SPOT_TESTNET,
-                        PaperOrderMode.VALIDATE_ONLY,
-                        1000L,
-                        1000.0,
-                        new BigDecimal("0.0010"),
-                        false,
-                        new BigDecimal("25.0")),
+        PaperBotSession session = setup.createSession(paperConfig(
                 new PaperStrategyConfig("ema_cross", new StrategyParameters(1, 2), List.of()),
                 new BinanceConfig("api-key", "secret-key", 15000.0)));
 
@@ -82,36 +73,24 @@ class PaperBotSetupTest {
     }
 
     private PaperConfig config() {
-        return new PaperConfig(
-                new PaperBotConfig("bot-1", "v1", "BTCUSDT", "1m"),
-                new PaperExecutionConfig(
-                        PaperExchange.BINANCE_SPOT_TESTNET,
-                        PaperOrderMode.VALIDATE_ONLY,
-                        1000L,
-                        1000.0,
-                        new BigDecimal("0.0010"),
-                        false,
-                        new BigDecimal("25.0")),
+        return paperConfig(
                 new PaperStrategyConfig("queued_actions", null, List.of(TradeAction.BUY)),
                 new BinanceConfig("api-key", "secret-key", 15000.0));
     }
 
     private PaperConfig missingSecretsConfig() {
-        return new PaperConfig(
-                new PaperBotConfig("bot-1", "v1", "BTCUSDT", "1m"),
-                new PaperExecutionConfig(
-                        PaperExchange.BINANCE_SPOT_TESTNET,
-                        PaperOrderMode.VALIDATE_ONLY,
-                        1000L,
-                        1000.0,
-                        new BigDecimal("0.0010"),
-                        false,
-                        new BigDecimal("25.0")),
+        return paperConfig(
                 new PaperStrategyConfig("queued_actions", null, List.of(TradeAction.BUY)),
                 new BinanceConfig("", "", 15000.0));
     }
 
     private PaperConfig ta4jConfig() {
+        return paperConfig(
+                new PaperStrategyConfig("ema_cross", new StrategyParameters(3, 7), List.of()),
+                new BinanceConfig("api-key", "secret-key", 15000.0));
+    }
+
+    private PaperConfig paperConfig(PaperStrategyConfig strategy, BinanceConfig binance) {
         return new PaperConfig(
                 new PaperBotConfig("bot-1", "v1", "BTCUSDT", "1m"),
                 new PaperExecutionConfig(
@@ -122,8 +101,8 @@ class PaperBotSetupTest {
                         new BigDecimal("0.0010"),
                         false,
                         new BigDecimal("25.0")),
-                new PaperStrategyConfig("ema_cross", new StrategyParameters(3, 7), List.of()),
-                new BinanceConfig("api-key", "secret-key", 15000.0));
+                strategy,
+                binance);
     }
 
     private static final class StubClientFactory extends ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory {

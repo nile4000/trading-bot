@@ -38,13 +38,7 @@ class RunnerTest {
                 "2026-01-01T07:00:00Z,110,110,110,120,1",
                 "2026-01-01T08:00:00Z,120,120,120,130,1",
                 "2026-01-01T09:00:00Z,130,130,130,140,1");
-        StrategyDefinition strategy = new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
-        BacktestConfig config = new BacktestConfig(
-                csvPath,
-                "BTCUSDT",
-                "1h",
-                strategy,
-                new PortfolioConfig(10000.0));
+        BacktestConfig config = backtestConfig(csvPath, strategy("ema_cross", new StrategyParameters(3, 7)));
 
         Report report = runner.backtest(config);
         Position openPosition = report.positions().getLast();
@@ -77,12 +71,9 @@ class RunnerTest {
     void run_supportsSmaCrossStrategy() {
         Runner runner = new Runner();
 
-        Report report = runner.backtest(new BacktestConfig(
+        Report report = runner.backtest(backtestConfig(
                 Path.of("data/historical/BTCUSDT-1h.csv"),
-                "BTCUSDT",
-                "1h",
-                new StrategyDefinition("sma_cross", new StrategyParameters(3, 7)),
-                new PortfolioConfig(10000.0)));
+                strategy("sma_cross", new StrategyParameters(3, 7))));
 
         assertEquals("sma_cross", report.metadata().strategy().name());
     }
@@ -91,13 +82,23 @@ class RunnerTest {
     void run_supportsRsiReversionStrategy() {
         Runner runner = new Runner();
 
-        Report report = runner.backtest(new BacktestConfig(
+        Report report = runner.backtest(backtestConfig(
                 Path.of("data/historical/BTCUSDT-1h.csv"),
-                "BTCUSDT",
-                "1h",
-                new StrategyDefinition("rsi_reversion", StrategyParameters.rsiReversion(5, 30, 70)),
-                new PortfolioConfig(10000.0)));
+                strategy("rsi_reversion", StrategyParameters.rsiReversion(5, 30, 70))));
 
         assertEquals("rsi_reversion", report.metadata().strategy().name());
+    }
+
+    private BacktestConfig backtestConfig(Path csvPath, StrategyDefinition strategy) {
+        return new BacktestConfig(
+                csvPath,
+                "BTCUSDT",
+                "1h",
+                strategy,
+                new PortfolioConfig(10000.0));
+    }
+
+    private StrategyDefinition strategy(String name, StrategyParameters parameters) {
+        return new StrategyDefinition(name, parameters);
     }
 }

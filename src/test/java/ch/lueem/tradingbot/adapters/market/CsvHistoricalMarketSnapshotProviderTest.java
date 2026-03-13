@@ -16,19 +16,13 @@ class CsvHistoricalMarketSnapshotProviderTest {
 
     @Test
     void load_buildsSnapshotsLazilyFromSeries() {
-        BarSeries series = new BaseBarSeriesBuilder().withName("test-series").build();
+        var series = new BaseBarSeriesBuilder().withName("test-series").build();
         addBar(series, "2026-03-12T22:20:00Z", "100");
         addBar(series, "2026-03-12T22:21:00Z", "101");
         addBar(series, "2026-03-12T22:22:00Z", "102");
 
-        CsvHistoricalMarketSnapshotProvider provider = new CsvHistoricalMarketSnapshotProvider(series, "BTCUSDT", "1m");
-        TradingDefinition definition = new TradingDefinition(
-                "backtest-btcusdt-1m",
-                "v1",
-                BotMode.BACKTEST,
-                "BTCUSDT",
-                "1m",
-                new StrategyDefinition("ema_cross", null));
+        var provider = new CsvHistoricalMarketSnapshotProvider(series, "BTCUSDT", "1m");
+        var definition = backtestDefinition();
 
         var first = provider.load(definition);
         var second = provider.load(definition);
@@ -48,18 +42,12 @@ class CsvHistoricalMarketSnapshotProviderTest {
 
     @Test
     void load_preservesDecimalPrecisionWithoutDoubleRoundTrip() {
-        BarSeries series = new BaseBarSeriesBuilder().withName("precision-series").build();
+        var series = new BaseBarSeriesBuilder().withName("precision-series").build();
         addBar(series, "2026-03-12T22:20:00Z", "0.12345678");
         addBar(series, "2026-03-12T22:21:00Z", "123456.78901234");
 
-        CsvHistoricalMarketSnapshotProvider provider = new CsvHistoricalMarketSnapshotProvider(series, "BTCUSDT", "1m");
-        TradingDefinition definition = new TradingDefinition(
-                "backtest-btcusdt-1m",
-                "v1",
-                BotMode.BACKTEST,
-                "BTCUSDT",
-                "1m",
-                new StrategyDefinition("ema_cross", null));
+        var provider = new CsvHistoricalMarketSnapshotProvider(series, "BTCUSDT", "1m");
+        var definition = backtestDefinition();
 
         var first = provider.load(definition);
         var second = provider.load(definition);
@@ -68,6 +56,16 @@ class CsvHistoricalMarketSnapshotProviderTest {
         assertEquals("0.12345678", first.closePriceHistory().getFirst().toPlainString());
         assertEquals("123456.78901234", second.lastPrice().toPlainString());
         assertEquals("123456.78901234", second.closePriceHistory().getLast().toPlainString());
+    }
+
+    private TradingDefinition backtestDefinition() {
+        return new TradingDefinition(
+                "backtest-btcusdt-1m",
+                "v1",
+                BotMode.BACKTEST,
+                "BTCUSDT",
+                "1m",
+                new StrategyDefinition("ema_cross", null));
     }
 
     private void addBar(BarSeries series, String endTime, String closePrice) {

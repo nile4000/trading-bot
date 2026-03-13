@@ -19,23 +19,18 @@ class BinanceTickerPriceMarketSnapshotProviderTest {
 
     @Test
     void load_updatesCurrentBarWithinSameTimeframe() {
-        BinanceTickerPriceMarketSnapshotProvider provider = new BinanceTickerPriceMarketSnapshotProvider(
+        var provider = new BinanceTickerPriceMarketSnapshotProvider(
                 new StubClient("100.00", "101.00", "102.00"),
                 new SequenceClock(
                         "2026-03-12T22:19:41Z",
                         "2026-03-12T22:19:52Z",
                         "2026-03-12T22:19:59Z"));
-        TradingDefinition definition = new TradingDefinition(
-                "paper-bot",
-                "v1",
-                BotMode.PAPER,
-                "BTCUSDT",
-                "1m",
-                new StrategyDefinition("ema_cross", null));
+        var definition = btcDefinition();
 
-        MarketSnapshot first = provider.load(definition);
-        MarketSnapshot second = provider.load(definition);
-        MarketSnapshot third = provider.load(definition);
+        var first = provider.load(definition);
+        var second = provider.load(definition);
+        var third = provider.load(definition);
+        var lastBar = provider.series().getLastBar();
 
         assertEquals(0, first.barIndex());
         assertEquals(0, second.barIndex());
@@ -45,30 +40,24 @@ class BinanceTickerPriceMarketSnapshotProviderTest {
         assertEquals(1, third.closePriceHistory().size());
         assertEquals(new BigDecimal("102.00"), third.closePriceHistory().getFirst());
         assertEquals(1, provider.series().getBarCount());
-        assertEquals(102.0, provider.series().getLastBar().getClosePrice().doubleValue());
-        assertEquals(102.0, provider.series().getLastBar().getHighPrice().doubleValue());
-        assertEquals(100.0, provider.series().getLastBar().getLowPrice().doubleValue());
+        assertEquals(102.0, lastBar.getClosePrice().doubleValue());
+        assertEquals(102.0, lastBar.getHighPrice().doubleValue());
+        assertEquals(100.0, lastBar.getLowPrice().doubleValue());
     }
 
     @Test
     void load_appendsNewBarWhenTimeframeBoundaryIsCrossed() {
-        BinanceTickerPriceMarketSnapshotProvider provider = new BinanceTickerPriceMarketSnapshotProvider(
+        var provider = new BinanceTickerPriceMarketSnapshotProvider(
                 new StubClient("100.00", "101.00", "102.00"),
                 new SequenceClock(
                         "2026-03-12T22:19:41Z",
                         "2026-03-12T22:20:02Z",
                         "2026-03-12T22:21:03Z"));
-        TradingDefinition definition = new TradingDefinition(
-                "paper-bot",
-                "v1",
-                BotMode.PAPER,
-                "BTCUSDT",
-                "1m",
-                new StrategyDefinition("ema_cross", null));
+        var definition = btcDefinition();
 
-        MarketSnapshot first = provider.load(definition);
-        MarketSnapshot second = provider.load(definition);
-        MarketSnapshot third = provider.load(definition);
+        var first = provider.load(definition);
+        var second = provider.load(definition);
+        var third = provider.load(definition);
 
         assertEquals(0, first.barIndex());
         assertEquals(1, second.barIndex());
@@ -77,6 +66,16 @@ class BinanceTickerPriceMarketSnapshotProviderTest {
         assertEquals(2, second.closePriceHistory().size());
         assertEquals(3, third.closePriceHistory().size());
         assertEquals(3, provider.series().getBarCount());
+    }
+
+    private TradingDefinition btcDefinition() {
+        return new TradingDefinition(
+                "paper-bot",
+                "v1",
+                BotMode.PAPER,
+                "BTCUSDT",
+                "1m",
+                new StrategyDefinition("ema_cross", null));
     }
 
     private static final class StubClient implements ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient {

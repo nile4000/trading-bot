@@ -10,7 +10,6 @@ import java.time.OffsetDateTime;
 
 import ch.lueem.tradingbot.adapters.config.paper.PaperOrderMode;
 import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
-import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory;
 import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.core.execution.Request;
 import ch.lueem.tradingbot.core.execution.Result;
@@ -165,12 +164,6 @@ class BinancePaperExecutionServiceTest {
         assertEquals("no_open_position", result.message());
     }
 
-    @Test
-    void exposesTestnetBaseUrlThroughClientStub() {
-        CapturingClient client = new CapturingClient();
-        assertEquals(BinanceClientFactory.TESTNET_REST_BASE_URL, client.baseUrl());
-    }
-
     private static Request buyRequest(BigDecimal referencePrice) {
         return new Request(
                 "runtime-1",
@@ -201,7 +194,7 @@ class BinancePaperExecutionServiceTest {
 
         @Override
         public String baseUrl() {
-            return BinanceClientFactory.TESTNET_REST_BASE_URL;
+            return "https://testnet.binance.vision";
         }
 
         @Override

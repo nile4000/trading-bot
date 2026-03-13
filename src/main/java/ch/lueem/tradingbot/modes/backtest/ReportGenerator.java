@@ -7,17 +7,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
-import ch.lueem.tradingbot.adapters.market.CsvHistoricalMarketSnapshotProvider;
+import ch.lueem.tradingbot.core.runtime.BotMode;
+import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
+import ch.lueem.tradingbot.core.time.Timeframes;
+import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import ch.lueem.tradingbot.modes.backtest.model.Metadata;
 import ch.lueem.tradingbot.modes.backtest.model.Report;
 import ch.lueem.tradingbot.modes.backtest.model.Report.Position;
-import ch.lueem.tradingbot.core.runtime.BotMode;
-import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
-import ch.lueem.tradingbot.core.strategy.action.TradeAction;
+import jakarta.inject.Singleton;
 
 /**
  * Generates the backtest report from shared runtime cycle results.
  */
+@Singleton
 public class ReportGenerator {
 
     private static final String EXECUTION_MODEL = "action_bar_close";
@@ -27,50 +29,31 @@ public class ReportGenerator {
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
     public Report assemble(BacktestConfig config, List<RuntimeCycleResult> cycleResults) {
-        if (config == null)
-            throw new IllegalArgumentException("config must not be null.");
-        if (cycleResults == null || cycleResults.isEmpty())
-            throw new IllegalArgumentException("cycleResults must not be empty.");
+        validateInputs(config, cycleResults);
 
         var positions = buildPositions(cycleResults);
         var lastCycle = cycleResults.getLast();
-
-        var closedPositions = positions.stream()
-                .filter(p -> "CLOSED".equals(p.status()))
-                .toList();
-
-        int closedTradeCount = closedPositions.size();
-        var winningTrades = closedPositions.stream()
-                .filter(p -> p.profitLoss().signum() > 0)
-                .toList();
-        var losingTrades = closedPositions.stream()
-                .filter(p -> p.profitLoss().signum() < 0)
-                .toList();
-
-        int winningTradeCount = winningTrades.size();
-        var averageWinningTrade = calculateAverage(winningTrades);
-        var averageLosingTrade = calculateAverage(losingTrades);
-        var profitFactor = calculateProfitFactor(winningTrades, losingTrades);
-        var winRatePercent = calculateWinRatePercent(closedTradeCount, winningTradeCount);
-
-        int timeInMarketBars = (int) cycleResults.stream().filter(c -> c.portfolioSnapshot().position().open()).count();
-        var timeInMarketDays = calculateTimeInMarketDays(config, timeInMarketBars);
-        var exposurePercent = calculateExposurePercent(cycleResults.size(), timeInMarketBars);
-
-        var initialCash = scale(BigDecimal.valueOf(config.portfolio().initialCash()));
-        var finalValue = calculateFinalValue(lastCycle);
-
-        var totalReturnPercent = calculateReturnPercent(initialCash, finalValue);
-        var buyAndHoldReturnPercent = calculateBuyAndHoldReturnPercent(initialCash, cycleResults);
-        var maxDrawdownPercent = calculateMaxDrawdownPercent(cycleResults);
-
+        var tradeStats = calculateTradeStats(positions);
+        var exposure = calculateExposure(config, cycleResults);
+        var performance = calculatePerformance(config, cycleResults, lastCycle);
         var metadata = buildMetadata(config, cycleResults, lastCycle);
 
         return new Report(
-                metadata, closedTradeCount, initialCash, finalValue, totalReturnPercent,
-                buyAndHoldReturnPercent, maxDrawdownPercent, profitFactor, winRatePercent,
-                averageWinningTrade, averageLosingTrade, timeInMarketDays, exposurePercent,
+                metadata, tradeStats.closedTradeCount(), performance.initialCash(), performance.finalValue(),
+                performance.totalReturnPercent(), performance.buyAndHoldReturnPercent(),
+                performance.maxDrawdownPercent(), tradeStats.profitFactor(), tradeStats.winRatePercent(),
+                tradeStats.averageWinningTrade(), tradeStats.averageLosingTrade(),
+                exposure.timeInMarketDays(), exposure.exposurePercent(),
                 lastCycle.portfolioSnapshot().position().open(), positions);
+    }
+
+    private void validateInputs(BacktestConfig config, List<RuntimeCycleResult> cycleResults) {
+        if (config == null) {
+            throw new IllegalArgumentException("config must not be null.");
+        }
+        if (cycleResults == null || cycleResults.isEmpty()) {
+            throw new IllegalArgumentException("cycleResults must not be empty.");
+        }
     }
 
     private List<Position> buildPositions(List<RuntimeCycleResult> cycleResults) {
@@ -101,6 +84,50 @@ public class ReportGenerator {
         }
 
         return List.copyOf(positions);
+    }
+
+    private TradeStats calculateTradeStats(List<Position> positions) {
+        var closedPositions = positions.stream()
+                .filter(p -> "CLOSED".equals(p.status()))
+                .toList();
+        var winningTrades = closedPositions.stream()
+                .filter(p -> p.profitLoss().signum() > 0)
+                .toList();
+        var losingTrades = closedPositions.stream()
+                .filter(p -> p.profitLoss().signum() < 0)
+                .toList();
+
+        return new TradeStats(
+                closedPositions.size(),
+                calculateAverage(winningTrades),
+                calculateAverage(losingTrades),
+                calculateProfitFactor(winningTrades, losingTrades),
+                calculateWinRatePercent(closedPositions.size(), winningTrades.size()));
+    }
+
+    private Exposure calculateExposure(BacktestConfig config, List<RuntimeCycleResult> cycleResults) {
+        int timeInMarketBars = (int) cycleResults.stream()
+                .filter(cycle -> cycle.portfolioSnapshot().position().open())
+                .count();
+
+        return new Exposure(
+                calculateTimeInMarketDays(config.timeframe(), timeInMarketBars),
+                calculateExposurePercent(cycleResults.size(), timeInMarketBars));
+    }
+
+    private Performance calculatePerformance(
+            BacktestConfig config,
+            List<RuntimeCycleResult> cycleResults,
+            RuntimeCycleResult lastCycle) {
+        var initialCash = scale(BigDecimal.valueOf(config.portfolio().initialCash()));
+        var finalValue = calculateEquity(lastCycle);
+
+        return new Performance(
+                initialCash,
+                finalValue,
+                calculateReturnPercent(initialCash, finalValue),
+                calculateBuyAndHoldReturnPercent(initialCash, cycleResults),
+                calculateMaxDrawdownPercent(cycleResults));
     }
 
     private Metadata buildMetadata(BacktestConfig config, List<RuntimeCycleResult> cycleResults,
@@ -163,16 +190,16 @@ public class ReportGenerator {
     }
 
     private BigDecimal calculateExposurePercent(int totalBars, int timeInMarketBars) {
-        if (totalBars == 0)
+        if (totalBars == 0) {
             return scale(BigDecimal.ZERO);
+        }
         return scale(BigDecimal.valueOf(timeInMarketBars)
                 .multiply(HUNDRED)
                 .divide(BigDecimal.valueOf(totalBars), MONEY_SCALE, RoundingMode.HALF_UP));
     }
 
-    private BigDecimal calculateTimeInMarketDays(BacktestConfig config, int timeInMarketBars) {
-        var barDuration = CsvHistoricalMarketSnapshotProvider
-                .parseTimeframe(config.timeframe());
+    private BigDecimal calculateTimeInMarketDays(String timeframe, int timeInMarketBars) {
+        var barDuration = Timeframes.parse(timeframe);
         var investedSeconds = BigDecimal.valueOf(barDuration.toSeconds())
                 .multiply(BigDecimal.valueOf(timeInMarketBars));
         return investedSeconds.divide(BigDecimal.valueOf(Duration.ofDays(1).toSeconds()), MONEY_SCALE,
@@ -180,8 +207,9 @@ public class ReportGenerator {
     }
 
     private BigDecimal calculateReturnPercent(BigDecimal initialValue, BigDecimal finalValue) {
-        if (initialValue.signum() == 0)
+        if (initialValue.signum() == 0) {
             return scale(BigDecimal.ZERO);
+        }
         return finalValue.subtract(initialValue)
                 .divide(initialValue, DIVISION_SCALE, RoundingMode.HALF_UP)
                 .multiply(HUNDRED)
@@ -192,8 +220,9 @@ public class ReportGenerator {
         var firstPrice = cycleResults.getFirst().marketSnapshot().lastPrice();
         var lastPrice = cycleResults.getLast().marketSnapshot().lastPrice();
 
-        if (firstPrice.signum() == 0)
+        if (firstPrice.signum() == 0) {
             return scale(BigDecimal.ZERO);
+        }
 
         var benchmarkFinalValue = initialCash
                 .divide(firstPrice, 16, RoundingMode.HALF_UP)
@@ -211,8 +240,9 @@ public class ReportGenerator {
             if (equity.compareTo(peak) > 0) {
                 peak = equity;
             }
-            if (peak.signum() == 0)
+            if (peak.signum() == 0) {
                 continue;
+            }
 
             var drawdownPercent = peak.subtract(equity)
                     .multiply(HUNDRED)
@@ -226,8 +256,9 @@ public class ReportGenerator {
     }
 
     private BigDecimal calculateWinRatePercent(int closedTradeCount, int winningTradeCount) {
-        if (closedTradeCount == 0)
+        if (closedTradeCount == 0) {
             return scale(BigDecimal.ZERO);
+        }
         return BigDecimal.valueOf(winningTradeCount)
                 .multiply(HUNDRED)
                 .divide(BigDecimal.valueOf(closedTradeCount), MONEY_SCALE, RoundingMode.HALF_UP);
@@ -241,8 +272,9 @@ public class ReportGenerator {
 
     private BigDecimal calculateProfitLossPercent(PositionAccumulator openPosition, BigDecimal pnl) {
         var positionValueAtEntry = openPosition.quantity.multiply(openPosition.entryPrice);
-        if (positionValueAtEntry.signum() == 0)
+        if (positionValueAtEntry.signum() == 0) {
             return scale(BigDecimal.ZERO);
+        }
 
         return pnl.multiply(HUNDRED)
                 .divide(positionValueAtEntry, DIVISION_SCALE, RoundingMode.HALF_UP)
@@ -271,5 +303,26 @@ public class ReportGenerator {
             String entryTime,
             BigDecimal entryPrice,
             BigDecimal quantity) {
+    }
+
+    private record TradeStats(
+            int closedTradeCount,
+            BigDecimal averageWinningTrade,
+            BigDecimal averageLosingTrade,
+            BigDecimal profitFactor,
+            BigDecimal winRatePercent) {
+    }
+
+    private record Exposure(
+            BigDecimal timeInMarketDays,
+            BigDecimal exposurePercent) {
+    }
+
+    private record Performance(
+            BigDecimal initialCash,
+            BigDecimal finalValue,
+            BigDecimal totalReturnPercent,
+            BigDecimal buyAndHoldReturnPercent,
+            BigDecimal maxDrawdownPercent) {
     }
 }

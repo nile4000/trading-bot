@@ -38,12 +38,12 @@ public class SimulatedExecutionService implements ExecutionService {
 
         return switch (request.tradeAction()) {
             case HOLD -> new Result(Status.SKIPPED, false, position.open(), "No execution for HOLD action.");
-            case BUY -> handleBuy(request, snapshot, position);
-            case SELL -> handleSell(request, position);
+            case BUY -> buying(request, snapshot, position);
+            case SELL -> selling(request, position);
         };
     }
 
-    private Result handleBuy(
+    private Result buying(
             Request request,
             PortfolioSnapshot snapshot,
             PositionSnapshot position) {
@@ -66,7 +66,7 @@ public class SimulatedExecutionService implements ExecutionService {
         return new Result(Status.EXECUTED, true, true, "BUY executed in simulated mode.");
     }
 
-    private Result handleSell(Request request, PositionSnapshot position) {
+    private Result selling(Request request, PositionSnapshot position) {
         if (!position.open()) {
             return new Result(Status.SKIPPED, false, false, "SELL ignored because no position is open.");
         }

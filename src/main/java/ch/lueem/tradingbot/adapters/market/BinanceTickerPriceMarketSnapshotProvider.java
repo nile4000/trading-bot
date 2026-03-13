@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
+import ch.lueem.tradingbot.core.time.Timeframes;
 import ch.lueem.tradingbot.core.runtime.MarketSnapshot;
 import ch.lueem.tradingbot.core.runtime.MarketSnapshotProvider;
 import ch.lueem.tradingbot.core.runtime.TradingDefinition;
@@ -47,7 +48,7 @@ public class BinanceTickerPriceMarketSnapshotProvider implements MarketSnapshotP
         }
 
         var price = client.loadSymbolPrice(definition.symbol());
-        var timeframe = parseTimeframe(definition.timeframe());
+        var timeframe = Timeframes.parse(definition.timeframe());
         var observedAt = clock.instant();
         var barEndTime = alignToBarEnd(observedAt, timeframe);
 
@@ -63,10 +64,6 @@ public class BinanceTickerPriceMarketSnapshotProvider implements MarketSnapshotP
 
     public synchronized BarSeries series() {
         return series;
-    }
-
-    private Duration parseTimeframe(String timeframe) {
-        return CsvHistoricalMarketSnapshotProvider.parseTimeframe(timeframe);
     }
 
     private void upsertBar(Duration timeframe, Instant barEndTime, BigDecimal price) {

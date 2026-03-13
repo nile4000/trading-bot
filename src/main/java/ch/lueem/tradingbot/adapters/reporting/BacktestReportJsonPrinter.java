@@ -10,6 +10,7 @@ import ch.lueem.tradingbot.adapters.config.ReportingConfig;
 import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
 import ch.lueem.tradingbot.adapters.reporting.model.BacktestReportDocument;
 import ch.lueem.tradingbot.modes.backtest.model.Report;
+import jakarta.inject.Singleton;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -18,6 +19,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * Converts a backtest result into a stable JSON document and writes it to an
  * output stream.
  */
+@Singleton
 public class BacktestReportJsonPrinter {
 
     private static final String REPORT_VERSION = "v5";

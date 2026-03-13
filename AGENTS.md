@@ -8,28 +8,29 @@
 
 ## Configuration
 
-- Application defaults live in `src/main/resources/application.yml`.
-- Group configuration by concern: `backtest`, `reporting`, `logging`.
+- Application defaults live in `src/main/resources/application.yaml`.
+- Group configuration by concern: `trading.app`, `trading.reporting`, `trading.backtest`, `trading.paper`.
 - Keep configuration classes small, typed, and under `adapters.config`.
+- Prefer Quarkus config mapping and profile overrides over custom config loaders or resource switching.
 - If a new setting affects behavior, prefer adding it to YAML and mapping it explicitly.
 
 ## Logging And Reporting
 
-- Use Logback for technical runtime logs.
+- Use Quarkus/JBoss logging for technical runtime logs.
 - Keep technical logs and business output separate.
 - Backtest results belong in report objects and report renderers, not in log statements.
-- Report rendering should not happen in `App`.
+- Report rendering should not happen in commands or setup classes unless the renderer is injected directly there as the final output step.
 - JSON is the current default report format and should stay stable and machine-readable.
 - The current backtest JSON schema is versioned and should evolve deliberately.
 - Monetary and percentage values in backtest reports should be emitted as numeric JSON values with scale `4`.
 - Report summaries and position details belong in dedicated report models, not in ad-hoc maps or log lines.
 - Versioned or reusable report-schema records should live in dedicated files under the reporting layer.
-- Keep nested or local records only for truly private helper state with no reuse outside one class.
+- Keep nested or local records only for truly private helper state with no reuse outside one class when they improve readability.
 
 ## Application Structure
 
-- `App` should stay a thin entry point.
-- Structure the app as `app`, `core`, `modes`, and `adapters`.
+- Use Quarkus command mode / Picocli as the runtime entrypoint.
+- Structure the app as `quarkus`, `core`, `modes`, and `adapters`.
 - Keep `core` free of dependencies on `modes` and `adapters`.
 - Keep end-to-end orchestration in `modes.backtest` and `modes.paper`.
 - Keep output formatting in `adapters.reporting`.
@@ -37,6 +38,7 @@
 - Prefer top-level records for domain, config, runtime-state, and cross-layer transport models.
 - Avoid extracting one-field local helper records when a simple primitive or existing model keeps the code clearer.
 - Prefer role-based class names over storage-detail names like `InMemory` unless the storage mechanism is the main distinction.
+- Avoid thin forwarding services or wrappers without their own behavior; prefer direct orchestration in commands or mode classes.
 
 ## Backtest Modeling
 
@@ -85,4 +87,6 @@
 ## Current Commands
 
 - Build: `mvn clean compile`
-- Run app: `mvn exec:java`
+- Run backtest in dev mode: `mvn quarkus:dev -Dquarkus.args=\"backtest\"`
+- Run paper bot in dev mode: `mvn quarkus:dev -Dquarkus.args=\"paper\"`
+- Run packaged app: `java -jar target/quarkus-app/quarkus-run.jar backtest`

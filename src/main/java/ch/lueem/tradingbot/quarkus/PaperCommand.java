@@ -3,7 +3,8 @@ package ch.lueem.tradingbot.quarkus;
 import java.util.concurrent.Callable;
 
 import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
-import ch.lueem.tradingbot.modes.paper.PaperBotService;
+import ch.lueem.tradingbot.modes.paper.PaperBotLoop;
+import ch.lueem.tradingbot.modes.paper.PaperBotSetup;
 import jakarta.inject.Inject;
 import picocli.CommandLine;
 
@@ -14,7 +15,9 @@ import picocli.CommandLine;
 public class PaperCommand implements Callable<Integer> {
 
     @Inject
-    PaperBotService paperBotService;
+    PaperBotSetup setup;
+    @Inject
+    PaperBotLoop loop;
     @Inject
     PaperConfig paperConfig;
     @Inject
@@ -22,7 +25,9 @@ public class PaperCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        paperBotService.run(paperConfig, runtimeConfig.app().lifecycleEvents());
+        loop.run(
+                setup.createSession(paperConfig),
+                runtimeConfig.app().lifecycleEvents());
         return CommandLine.ExitCode.OK;
     }
 }

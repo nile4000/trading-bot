@@ -2,12 +2,14 @@ package ch.lueem.tradingbot.modes.paper;
 
 import ch.lueem.tradingbot.core.execution.Status;
 import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
+import jakarta.inject.Singleton;
 import org.jboss.logging.Logger;
 
 /**
  * Runs the paper bot continuously and emits technical lifecycle logs around
  * each cycle.
  */
+@Singleton
 public class PaperBotLoop {
 
     private static final Logger LOG = Logger.getLogger(PaperBotLoop.class);

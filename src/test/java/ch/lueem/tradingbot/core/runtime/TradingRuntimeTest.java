@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-import ch.lueem.tradingbot.core.runtime.BotMode;
 import ch.lueem.tradingbot.core.execution.ExecutionService;
 import ch.lueem.tradingbot.core.execution.Request;
 import ch.lueem.tradingbot.core.execution.Result;
@@ -29,7 +28,7 @@ class TradingRuntimeTest {
         SimulatedPortfolioService portfolioService = new SimulatedPortfolioService();
         portfolioService.seedCash("BTCUSDT", new BigDecimal("1000.0000"));
         TradingRuntime runtime = new TradingRuntime(
-                new TradingDefinition("bot-1", "v1", BotMode.PAPER, "BTCUSDT", "1m", new StrategyDefinition("queued_actions", null)),
+                queuedDefinition(),
                 new SequenceMarketSnapshotProvider(List.of(
                         new MarketSnapshot(
                                 "BTCUSDT",
@@ -53,7 +52,7 @@ class TradingRuntimeTest {
     @Test
     void cycle_rejectsMarketSnapshotWithWrongSymbol() {
         TradingRuntime runtime = new TradingRuntime(
-                new TradingDefinition("bot-1", "v1", BotMode.PAPER, "BTCUSDT", "1m", new StrategyDefinition("queued_actions", null)),
+                queuedDefinition(),
                 new SequenceMarketSnapshotProvider(List.of(
                         new MarketSnapshot(
                                 "ETHUSDT",
@@ -75,7 +74,7 @@ class TradingRuntimeTest {
     void cycle_withValidationOnlyExecution_keepsPortfolioFlatAcrossActions() {
         CapturingExecutionService executionService = new CapturingExecutionService();
         TradingRuntime runtime = new TradingRuntime(
-                new TradingDefinition("bot-1", "v1", BotMode.PAPER, "BTCUSDT", "1m", new StrategyDefinition("queued_actions", null)),
+                queuedDefinition(),
                 new SequenceMarketSnapshotProvider(List.of(
                         new MarketSnapshot("BTCUSDT", "1m", OffsetDateTime.parse("2026-03-12T10:15:30Z"), new BigDecimal("100.00"), List.of(new BigDecimal("100.00")), 0),
                         new MarketSnapshot("BTCUSDT", "1m", OffsetDateTime.parse("2026-03-12T10:16:30Z"), new BigDecimal("101.00"), List.of(new BigDecimal("100.00"), new BigDecimal("101.00")), 1),
@@ -92,6 +91,16 @@ class TradingRuntimeTest {
         assertFalse(first.portfolioSnapshot().position().open());
         assertFalse(second.portfolioSnapshot().position().open());
         assertFalse(third.portfolioSnapshot().position().open());
+    }
+
+    private TradingDefinition queuedDefinition() {
+        return new TradingDefinition(
+                "bot-1",
+                "v1",
+                BotMode.PAPER,
+                "BTCUSDT",
+                "1m",
+                new StrategyDefinition("queued_actions", null));
     }
 
     private static final class CapturingExecutionService implements ExecutionService {
