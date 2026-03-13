@@ -1,9 +1,5 @@
 package ch.lueem.tradingbot.adapters.config.paper;
 
-import static ch.lueem.tradingbot.adapters.config.ConfigValidation.requireNotBlank;
-import static ch.lueem.tradingbot.adapters.config.ConfigValidation.requireNotEmpty;
-import static ch.lueem.tradingbot.adapters.config.ConfigValidation.requirePresent;
-
 import java.util.List;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
@@ -20,12 +16,12 @@ public record PaperStrategyConfig(
     private static final String QUEUED_ACTIONS = "queued_actions";
 
     public PaperStrategyConfig {
-        requireNotBlank(name, "paper.strategy.name must not be blank.");
-
         if (QUEUED_ACTIONS.equals(name)) {
-            requireNotEmpty(actions, "paper.strategy.actions must not be null or empty for queued_actions.");
-        } else {
-            requirePresent(parameters, "paper.strategy.parameters must not be null for strategy " + name + ".");
+            if (actions == null || actions.isEmpty()) {
+                throw new IllegalStateException("paper.strategy.actions must not be null or empty for queued_actions.");
+            }
+        } else if (parameters == null) {
+            throw new IllegalStateException("paper.strategy.parameters must not be null for strategy " + name + ".");
         }
     }
 

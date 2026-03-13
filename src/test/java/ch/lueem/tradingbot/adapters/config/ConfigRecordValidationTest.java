@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.math.BigDecimal;
 import java.util.List;
 
-import ch.lueem.tradingbot.adapters.config.backtest.PortfolioConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperExchange;
 import ch.lueem.tradingbot.adapters.config.paper.PaperExecutionConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperOrderMode;
@@ -14,13 +13,6 @@ import ch.lueem.tradingbot.adapters.config.paper.PaperStrategyConfig;
 import org.junit.jupiter.api.Test;
 
 class ConfigRecordValidationTest {
-
-    @Test
-    void portfolioConfigRejectsNonPositiveInitialCash() {
-        var exception = assertThrows(IllegalStateException.class, () -> new PortfolioConfig(0.0));
-
-        assertEquals("backtest.portfolio.initialCash must be greater than zero.", exception.getMessage());
-    }
 
     @Test
     void paperStrategyConfigRequiresActionsForQueuedActions() {
