@@ -3,7 +3,6 @@ package ch.lueem.tradingbot.modes.paper;
 import java.math.BigDecimal;
 
 import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
-import ch.lueem.tradingbot.adapters.config.paper.PaperExchange;
 import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
 import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory;
 import ch.lueem.tradingbot.adapters.execution.binance.flow.BinancePaperExecutionService;
@@ -38,8 +37,6 @@ public class PaperBotSetup {
     }
 
     public PaperBotSession createSession(PaperConfig paper) {
-        ensureSupportedExchange(paper);
-
         var client = createClient(paper);
         var marketSnapshotProvider = new BinancePriceSnapshotProvider(client);
         var portfolioService = createPortfolioService(paper);
@@ -47,23 +44,8 @@ public class PaperBotSetup {
         return new PaperBotSession(runtime, paper, client.baseUrl());
     }
 
-    private String requireSecret(String value, String propertyName) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException("Missing required configuration value: " + propertyName);
-        }
-        return value;
-    }
-
-    private void ensureSupportedExchange(PaperConfig paper) {
-        if (paper.execution().exchange() != PaperExchange.BINANCE_SPOT_TESTNET) {
-            throw new IllegalStateException("Unsupported paper exchange in phase 1: " + paper.execution().exchange());
-        }
-    }
-
     private BinanceClient createClient(PaperConfig paper) {
-        return clientFactory.create(
-                requireSecret(paper.binance().apiKey(), "paper.binance.apiKey"),
-                requireSecret(paper.binance().secretKey(), "paper.binance.secretKey"));
+        return clientFactory.create(paper.binance().apiKey(), paper.binance().secretKey());
     }
 
     private PaperPortfolioService createPortfolioService(PaperConfig paper) {

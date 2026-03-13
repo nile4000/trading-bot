@@ -25,11 +25,14 @@ class PaperBotSetupTest {
 
     @Test
     void createContext_failsWhenRequiredCredentialsAreMissing() {
-        PaperBotSetup setup = new PaperBotSetup(new StubClientFactory());
+        PaperBotSetup setup = new PaperBotSetup(
+                new ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory(TEST_REST_BASE_URL));
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> setup.createSession(missingSecretsConfig()));
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> setup.createSession(missingSecretsConfig()));
 
-        assertTrue(exception.getMessage().contains("paper.binance.apiKey"));
+        assertTrue(exception.getMessage().contains("apiKey and secretKey"));
     }
 
     @Test
@@ -105,19 +108,6 @@ class PaperBotSetupTest {
                         new BigDecimal("25.0")),
                 strategy,
                 binance);
-    }
-
-    private static final class StubClientFactory extends ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory {
-        private StubClientFactory() {
-            super(TEST_REST_BASE_URL);
-        }
-
-        @Override
-        public ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient create(
-                String apiKey,
-                String secretKey) {
-            throw new AssertionError("factory should not be used when env vars are missing");
-        }
     }
 
     private static final class CapturingClientFactory extends ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory {

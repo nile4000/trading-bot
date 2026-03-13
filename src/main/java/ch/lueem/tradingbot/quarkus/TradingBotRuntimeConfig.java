@@ -45,9 +45,7 @@ public interface TradingBotRuntimeConfig {
 
         @NotBlank
         String timeframe();
-
         Strategy strategy();
-
         Portfolio portfolio();
     }
 
@@ -122,14 +120,11 @@ public interface TradingBotRuntimeConfig {
     }
 
     interface StrategyParameters {
+
         Optional<Integer> shortEma();
-
         Optional<Integer> longEma();
-
         Optional<Integer> rsiPeriod();
-
         Optional<Integer> buyBelow();
-
         Optional<Integer> sellAbove();
     }
 }
