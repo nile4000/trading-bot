@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
+import java.util.AbstractList;
 import java.util.List;
 
 import ch.lueem.tradingbot.core.runtime.MarketSnapshot;
@@ -18,7 +18,6 @@ import org.ta4j.core.BarSeries;
 public class CsvHistoricalMarketSnapshotProvider implements MarketSnapshotProvider {
 
     private final BarSeries series;
-    private final List<MarketSnapshot> snapshots;
     private int nextIndex;
 
     public CsvHistoricalMarketSnapshotProvider(
@@ -33,54 +32,63 @@ public class CsvHistoricalMarketSnapshotProvider implements MarketSnapshotProvid
         if (series == null) {
             throw new IllegalArgumentException("series must not be null.");
         }
-        if (symbol == null || symbol.isBlank()) {
-            throw new IllegalArgumentException("symbol must not be blank.");
-        }
-        if (timeframe == null || timeframe.isBlank()) {
-            throw new IllegalArgumentException("timeframe must not be blank.");
+        if ((symbol == null || symbol.isBlank()) || (timeframe == null || timeframe.isBlank())) {
+            throw new IllegalArgumentException("symbol and timeframe must not be blank.");
         }
         this.series = series;
-        this.snapshots = buildSnapshots(series, symbol, timeframe);
+        this.symbol = symbol;
+        this.timeframe = timeframe;
         this.nextIndex = 0;
     }
+
+    private final String symbol;
+    private final String timeframe;
 
     @Override
     public MarketSnapshot load(TradingDefinition definition) {
         if (definition == null) {
             throw new IllegalArgumentException("definition must not be null.");
         }
-        if (nextIndex >= snapshots.size()) {
+        if (nextIndex >= series.getBarCount()) {
             throw new IllegalStateException("No more historical market snapshots available for runtime " + definition.runtimeId());
         }
-        return snapshots.get(nextIndex++);
+        int barIndex = nextIndex++;
+        var closePrice = toBigDecimal(series.getBar(barIndex).getClosePrice());
+        return new MarketSnapshot(
+                symbol,
+                timeframe,
+                series.getBar(barIndex).getEndTime().atOffset(ZoneOffset.UTC),
+                closePrice,
+                closePriceHistoryView(barIndex),
+                barIndex);
     }
 
     public int snapshotCount() {
-        return snapshots.size();
+        return series.getBarCount();
     }
 
     public BarSeries series() {
         return series;
     }
 
-    private List<MarketSnapshot> buildSnapshots(BarSeries series, String symbol, String timeframe) {
+    private List<BigDecimal> closePriceHistoryView(int endIndexInclusive) {
         if (series.isEmpty()) {
             throw new IllegalArgumentException("Historical series must not be empty.");
         }
-        List<MarketSnapshot> builtSnapshots = new ArrayList<>(series.getBarCount());
-        List<BigDecimal> closeHistory = new ArrayList<>(series.getBarCount());
-        for (int index = 0; index < series.getBarCount(); index++) {
-            BigDecimal closePrice = BigDecimal.valueOf(series.getBar(index).getClosePrice().doubleValue());
-            closeHistory.add(closePrice);
-            builtSnapshots.add(new MarketSnapshot(
-                    symbol,
-                    timeframe,
-                    series.getBar(index).getEndTime().atOffset(ZoneOffset.UTC),
-                    closePrice,
-                    List.copyOf(closeHistory),
-                    index));
-        }
-        return List.copyOf(builtSnapshots);
+        return new AbstractList<>() {
+            @Override
+            public BigDecimal get(int index) {
+                if (index < 0 || index > endIndexInclusive) {
+                    throw new IndexOutOfBoundsException("index: " + index + ", size: " + size());
+                }
+                return toBigDecimal(series.getBar(index).getClosePrice());
+            }
+
+            @Override
+            public int size() {
+                return endIndexInclusive + 1;
+            }
+        };
     }
 
     public static Duration parseTimeframe(String timeframe) {
@@ -100,18 +108,16 @@ public class CsvHistoricalMarketSnapshotProvider implements MarketSnapshotProvid
             Path csvPath,
             String symbol,
             String timeframe) {
-        if (csvBarSeriesLoader == null) {
-            throw new IllegalArgumentException("csvBarSeriesLoader must not be null.");
+        if (csvBarSeriesLoader == null || csvPath == null) {
+            throw new IllegalArgumentException("csvBarSeriesLoader and csvPath must not be null.");
         }
-        if (csvPath == null) {
-            throw new IllegalArgumentException("csvPath must not be null.");
-        }
-        if (symbol == null || symbol.isBlank()) {
-            throw new IllegalArgumentException("symbol must not be blank.");
-        }
-        if (timeframe == null || timeframe.isBlank()) {
-            throw new IllegalArgumentException("timeframe must not be blank.");
+        if ((symbol == null || symbol.isBlank()) || (timeframe == null || timeframe.isBlank())) {
+            throw new IllegalArgumentException("symbol and timeframe must not be blank.");
         }
         return csvBarSeriesLoader.load(csvPath, symbol + "-" + timeframe, parseTimeframe(timeframe));
+    }
+
+    private static BigDecimal toBigDecimal(org.ta4j.core.num.Num value) {
+        return new BigDecimal(value.toString());
     }
 }

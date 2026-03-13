@@ -1,0 +1,70 @@
+trading:
+  app:
+    lifecycle-events: false
+  reporting:
+    pretty-print: true
+    include-notes: true
+  backtest:
+    csv-path: data/historical/BTCUSDT-1h.csv
+    symbol: BTCUSDT
+    timeframe: 1h
+    strategy:
+      name: ema_cross
+      parameters:
+        short-ema: 3
+        long-ema: 7
+    portfolio:
+      initial-cash: 10000.0
+  paper:
+    bot:
+      bot-id: btcusdt-paper-testnet
+      bot-version: v1
+      symbol: BTCUSDT
+      timeframe: 1m
+    execution:
+      exchange: BINANCE_SPOT_TESTNET
+      order-mode: VALIDATE_ONLY
+      tick-interval-millis: 10000
+      initial-cash: 1000.0
+      order-quantity: 0.0001
+      place-orders-enabled: false
+      max-order-notional: 25.0
+    strategy:
+      name: ema_cross
+      parameters:
+        short-ema: 3
+        long-ema: 7
+    binance:
+      api-key: ${BINANCE_TESTNET_API_KEY:}
+      secret-key: ${BINANCE_TESTNET_SECRET_KEY:}
+      recv-window-millis: 15000
+      base-url: https://testnet.binance.vision
+
+"%paper":
+  trading:
+    app:
+      lifecycle-events: true
+
+"%backtest-1m":
+  trading:
+    backtest:
+      csv-path: data/historical/BTCUSDT-1m.csv
+      timeframe: 1m
+
+"%backtest-5m":
+  trading:
+    backtest:
+      csv-path: data/historical/BTCUSDT-5m.csv
+      timeframe: 5m
+
+"%backtest-15m":
+  trading:
+    backtest:
+      csv-path: data/historical/BTCUSDT-15m.csv
+      timeframe: 15m
+
+"%backtest-1h":
+  trading:
+    backtest:
+      csv-path: data/historical/BTCUSDT-1h.csv
+      timeframe: 1h

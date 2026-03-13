@@ -8,13 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.util.List;
 
-import ch.lueem.tradingbot.adapters.config.BinanceSpotTestnetConfig;
-import ch.lueem.tradingbot.adapters.config.PaperBotConfig;
-import ch.lueem.tradingbot.adapters.config.PaperConfig;
-import ch.lueem.tradingbot.adapters.config.PaperExchange;
-import ch.lueem.tradingbot.adapters.config.PaperExecutionConfig;
-import ch.lueem.tradingbot.adapters.config.PaperOrderMode;
-import ch.lueem.tradingbot.adapters.config.PaperStrategyConfig;
+import ch.lueem.tradingbot.adapters.config.paper.BinanceConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperBotConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperExchange;
+import ch.lueem.tradingbot.adapters.config.paper.PaperExecutionConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperOrderMode;
+import ch.lueem.tradingbot.adapters.config.paper.PaperStrategyConfig;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyParameters;
 import org.junit.jupiter.api.Test;
@@ -23,23 +23,17 @@ class PaperBotSetupTest {
 
     @Test
     void createContext_failsWhenRequiredCredentialsAreMissing() {
-        PaperBotSetup setup = new PaperBotSetup(new StubClientFactory(), name -> null);
+        PaperBotSetup setup = new PaperBotSetup(new StubClientFactory());
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> setup.createSession(config()));
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> setup.createSession(missingSecretsConfig()));
 
-        assertTrue(exception.getMessage().contains("BINANCE_TESTNET_API_KEY"));
+        assertTrue(exception.getMessage().contains("paper.binance.apiKey"));
     }
 
     @Test
     void createContext_usesResolvedSecretsAndExposesRestBaseUrl() {
         CapturingClientFactory clientFactory = new CapturingClientFactory();
-        PaperBotSetup setup = new PaperBotSetup(
-                clientFactory,
-                name -> switch (name) {
-                    case "BINANCE_TESTNET_API_KEY" -> "api-key";
-                    case "BINANCE_TESTNET_SECRET_KEY" -> "secret-key";
-                    default -> null;
-                });
+        PaperBotSetup setup = new PaperBotSetup(clientFactory);
 
         PaperBotSession session = setup.createSession(config());
 
@@ -50,9 +44,7 @@ class PaperBotSetupTest {
 
     @Test
     void createContext_supportsTa4jPaperStrategy() {
-        PaperBotSetup setup = new PaperBotSetup(
-                new CapturingClientFactory(),
-                name -> "resolved");
+        PaperBotSetup setup = new PaperBotSetup(new CapturingClientFactory());
 
         PaperBotSession session = setup.createSession(ta4jConfig());
 
@@ -61,9 +53,9 @@ class PaperBotSetupTest {
     }
 
     @Test
-    void createContext_runsTa4jStrategyAcrossPaperTicks() {
+    void createContext_keepsUpdatingTheCurrentPaperBarUntilTheTimeframeChanges() {
         SequencedClientFactory clientFactory = new SequencedClientFactory("10", "9", "12", "13", "14", "15");
-        PaperBotSetup setup = new PaperBotSetup(clientFactory, name -> "resolved");
+        PaperBotSetup setup = new PaperBotSetup(clientFactory);
         PaperBotSession session = setup.createSession(new PaperConfig(
                 new PaperBotConfig("bot-1", "v1", "BTCUSDT", "1m"),
                 new PaperExecutionConfig(
@@ -75,7 +67,7 @@ class PaperBotSetupTest {
                         false,
                         new BigDecimal("25.0")),
                 new PaperStrategyConfig("ema_cross", new StrategyParameters(1, 2), List.of()),
-                new BinanceSpotTestnetConfig("BINANCE_TESTNET_API_KEY", "BINANCE_TESTNET_SECRET_KEY", 15000.0)));
+                new BinanceConfig("api-key", "secret-key", 15000.0)));
 
         ch.lueem.tradingbot.core.runtime.RuntimeCycleResult result = null;
         for (int cycle = 0; cycle < 6; cycle++) {
@@ -83,8 +75,9 @@ class PaperBotSetupTest {
         }
 
         assertNotNull(result);
-        assertEquals(5, result.marketSnapshot().barIndex());
-        assertEquals(6, result.marketSnapshot().closePriceHistory().size());
+        assertEquals(0, result.marketSnapshot().barIndex());
+        assertEquals(1, result.marketSnapshot().closePriceHistory().size());
+        assertEquals(new BigDecimal("15"), result.marketSnapshot().closePriceHistory().getFirst());
         assertNotNull(result.action());
     }
 
@@ -100,7 +93,22 @@ class PaperBotSetupTest {
                         false,
                         new BigDecimal("25.0")),
                 new PaperStrategyConfig("queued_actions", null, List.of(TradeAction.BUY)),
-                new BinanceSpotTestnetConfig("BINANCE_TESTNET_API_KEY", "BINANCE_TESTNET_SECRET_KEY", 15000.0));
+                new BinanceConfig("api-key", "secret-key", 15000.0));
+    }
+
+    private PaperConfig missingSecretsConfig() {
+        return new PaperConfig(
+                new PaperBotConfig("bot-1", "v1", "BTCUSDT", "1m"),
+                new PaperExecutionConfig(
+                        PaperExchange.BINANCE_SPOT_TESTNET,
+                        PaperOrderMode.VALIDATE_ONLY,
+                        1000L,
+                        1000.0,
+                        new BigDecimal("0.0010"),
+                        false,
+                        new BigDecimal("25.0")),
+                new PaperStrategyConfig("queued_actions", null, List.of(TradeAction.BUY)),
+                new BinanceConfig("", "", 15000.0));
     }
 
     private PaperConfig ta4jConfig() {
@@ -115,24 +123,24 @@ class PaperBotSetupTest {
                         false,
                         new BigDecimal("25.0")),
                 new PaperStrategyConfig("ema_cross", new StrategyParameters(3, 7), List.of()),
-                new BinanceSpotTestnetConfig("BINANCE_TESTNET_API_KEY", "BINANCE_TESTNET_SECRET_KEY", 15000.0));
+                new BinanceConfig("api-key", "secret-key", 15000.0));
     }
 
-    private static final class StubClientFactory extends ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClientFactory {
+    private static final class StubClientFactory extends ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory {
         @Override
-        public ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClient create(
+        public ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient create(
                 String apiKey,
                 String secretKey) {
             throw new AssertionError("factory should not be used when env vars are missing");
         }
     }
 
-    private static final class CapturingClientFactory extends ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClientFactory {
+    private static final class CapturingClientFactory extends ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory {
         private String apiKey;
         private String secretKey;
 
         @Override
-        public ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClient create(
+        public ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient create(
                 String apiKey,
                 String secretKey) {
             this.apiKey = apiKey;
@@ -141,7 +149,7 @@ class PaperBotSetupTest {
         }
     }
 
-    private static final class SequencedClientFactory extends ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClientFactory {
+    private static final class SequencedClientFactory extends ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory {
         private final String[] prices;
 
         private SequencedClientFactory(String... prices) {
@@ -149,14 +157,14 @@ class PaperBotSetupTest {
         }
 
         @Override
-        public ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClient create(
+        public ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient create(
                 String apiKey,
                 String secretKey) {
             return new SequencedClient(prices);
         }
     }
 
-    private static final class StubClient implements ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClient {
+    private static final class StubClient implements ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient {
         @Override
         public String baseUrl() {
             return "https://testnet.binance.vision";
@@ -178,7 +186,7 @@ class PaperBotSetupTest {
         }
     }
 
-    private static final class SequencedClient implements ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClient {
+    private static final class SequencedClient implements ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient {
         private final java.util.ArrayDeque<BigDecimal> prices = new java.util.ArrayDeque<>();
 
         private SequencedClient(String... prices) {

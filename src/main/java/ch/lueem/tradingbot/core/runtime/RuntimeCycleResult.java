@@ -1,6 +1,6 @@
 package ch.lueem.tradingbot.core.runtime;
 
-import ch.lueem.tradingbot.core.execution.ExecutionResult;
+import ch.lueem.tradingbot.core.execution.Result;
 import ch.lueem.tradingbot.core.portfolio.PortfolioSnapshot;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 
@@ -11,6 +11,6 @@ public record RuntimeCycleResult(
         MarketSnapshot marketSnapshot,
         PortfolioSnapshot portfolioSnapshot,
         TradeAction action,
-        ExecutionResult executionResult
+        Result executionResult
 ) {
 }

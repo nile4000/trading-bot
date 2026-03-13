@@ -1,8 +1,8 @@
 package ch.lueem.tradingbot.core.runtime;
 
-import ch.lueem.tradingbot.core.execution.ExecutionRequest;
-import ch.lueem.tradingbot.core.execution.ExecutionResult;
 import ch.lueem.tradingbot.core.execution.ExecutionService;
+import ch.lueem.tradingbot.core.execution.Request;
+import ch.lueem.tradingbot.core.execution.Result;
 import ch.lueem.tradingbot.core.portfolio.PortfolioSnapshot;
 import ch.lueem.tradingbot.core.portfolio.PortfolioService;
 import ch.lueem.tradingbot.core.strategy.action.ActionContext;
@@ -49,7 +49,7 @@ public class TradingRuntime {
                 snapshot.barIndex(),
                 null));
 
-        ExecutionResult executionResult = executionService.execute(new ExecutionRequest(
+        Result executionResult = executionService.execute(new Request(
                 definition.runtimeId(),
                 definition.symbol(),
                 definition.timeframe(),

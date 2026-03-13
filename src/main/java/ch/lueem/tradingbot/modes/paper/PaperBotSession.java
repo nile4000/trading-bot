@@ -1,6 +1,6 @@
 package ch.lueem.tradingbot.modes.paper;
 
-import ch.lueem.tradingbot.adapters.config.PaperConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
 import ch.lueem.tradingbot.core.runtime.TradingRuntime;
 
 /**

@@ -1,12 +1,12 @@
 package ch.lueem.tradingbot.adapters.market;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
@@ -20,29 +20,7 @@ public class CsvBarSeriesLoader {
 
     public BarSeries load(Path csvPath, String seriesName, Duration barDuration) {
         validateInputs(csvPath, seriesName, barDuration);
-
-        List<String> lines = readLines(csvPath);
-        if (lines.isEmpty()) {
-            throw new IllegalArgumentException("CSV file is empty: " + csvPath);
-        }
-
-        String header = lines.get(0).trim();
-        if (!EXPECTED_HEADER.equals(header)) {
-            throw new IllegalArgumentException(
-                    "Invalid CSV header in %s. Expected '%s' but got '%s'."
-                            .formatted(csvPath, EXPECTED_HEADER, header));
-        }
-
-        BarSeries series = new BaseBarSeriesBuilder().withName(seriesName).build();
-        for (int lineNumber = 2; lineNumber <= lines.size(); lineNumber++) {
-            String line = lines.get(lineNumber - 1).trim();
-            if (line.isEmpty()) {
-                continue;
-            }
-            addBar(series, line, lineNumber, barDuration, csvPath);
-        }
-
-        return series;
+        return loadSeries(csvPath, seriesName, barDuration);
     }
 
     private void validateInputs(Path csvPath, String seriesName, Duration barDuration) {
@@ -60,9 +38,31 @@ public class CsvBarSeriesLoader {
         }
     }
 
-    private List<String> readLines(Path csvPath) {
-        try {
-            return Files.readAllLines(csvPath, StandardCharsets.UTF_8);
+    private BarSeries loadSeries(Path csvPath, String seriesName, Duration barDuration) {
+        var series = new BaseBarSeriesBuilder().withName(seriesName).build();
+
+        try (BufferedReader reader = Files.newBufferedReader(csvPath, StandardCharsets.UTF_8)) {
+            var header = reader.readLine();
+            if (header == null) {
+                throw new IllegalArgumentException("CSV file is empty: " + csvPath);
+            }
+            var normalizedHeader = header.trim();
+            if (!EXPECTED_HEADER.equals(normalizedHeader)) {
+                throw new IllegalArgumentException(
+                        "Invalid CSV header in %s. Expected '%s' but got '%s'."
+                                .formatted(csvPath, EXPECTED_HEADER, normalizedHeader));
+            }
+
+            int lineNumber = 2;
+            String line;
+            while ((line = reader.readLine()) != null) {
+                var trimmedLine = line.trim();
+                if (!trimmedLine.isEmpty()) {
+                    addBar(series, trimmedLine, lineNumber, barDuration, csvPath);
+                }
+                lineNumber++;
+            }
+            return series;
         } catch (IOException exception) {
             throw new IllegalArgumentException("Failed to read CSV file: " + csvPath, exception);
         }
@@ -75,12 +75,12 @@ public class CsvBarSeriesLoader {
         }
 
         try {
-            Instant endTime = Instant.parse(columns[0].trim());
-            String open = columns[1].trim();
-            String high = columns[2].trim();
-            String low = columns[3].trim();
-            String close = columns[4].trim();
-            String volume = columns[5].trim();
+            var endTime = Instant.parse(columns[0].trim());
+            var open = columns[1].trim();
+            var high = columns[2].trim();
+            var low = columns[3].trim();
+            var close = columns[4].trim();
+            var volume = columns[5].trim();
 
             ensureNumeric(open, "open");
             ensureNumeric(high, "high");

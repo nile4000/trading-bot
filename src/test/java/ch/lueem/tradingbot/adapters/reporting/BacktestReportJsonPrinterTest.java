@@ -2,7 +2,6 @@ package ch.lueem.tradingbot.adapters.reporting;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -11,12 +10,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 
-import ch.lueem.tradingbot.adapters.config.BacktestConfig;
-import ch.lueem.tradingbot.adapters.config.PortfolioConfig;
 import ch.lueem.tradingbot.adapters.config.ReportingConfig;
-import ch.lueem.tradingbot.modes.backtest.model.BacktestMetadata;
-import ch.lueem.tradingbot.modes.backtest.model.BacktestPositionReport;
-import ch.lueem.tradingbot.modes.backtest.model.BacktestReport;
+import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
+import ch.lueem.tradingbot.adapters.config.backtest.PortfolioConfig;
+import ch.lueem.tradingbot.modes.backtest.model.Metadata;
+import ch.lueem.tradingbot.modes.backtest.model.Report;
+import ch.lueem.tradingbot.modes.backtest.model.Report.Position;
 import ch.lueem.tradingbot.core.runtime.BotMode;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyParameters;
@@ -27,10 +26,10 @@ import org.junit.jupiter.api.Test;
 class BacktestReportJsonPrinterTest {
 
     @Test
-    void print_includesPositionFieldsInJson() throws Exception {
+    void print_omitsPositionsFromJson() throws Exception {
         BacktestReportJsonPrinter printer = new BacktestReportJsonPrinter();
         StrategyDefinition strategy = new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
-        BacktestPositionReport openPosition = new BacktestPositionReport(
+        Position openPosition = new Position(
                 1,
                 "OPEN",
                 "2025-01-01T00:00:00Z",
@@ -46,8 +45,8 @@ class BacktestReportJsonPrinterTest {
                 "1h",
                 strategy,
                 new PortfolioConfig(10000.0));
-        BacktestReport report = new BacktestReport(
-                new BacktestMetadata(
+        Report report = new Report(
+                new Metadata(
                         BotMode.BACKTEST,
                         "BTCUSDT",
                         "1h",
@@ -57,13 +56,19 @@ class BacktestReportJsonPrinterTest {
                         "action_bar_close",
                         "all_in_spot",
                         strategy),
-                3,
                 1,
-                true,
                 new BigDecimal("10000.0000"),
                 new BigDecimal("9816.5138"),
                 new BigDecimal("-1.8349"),
+                new BigDecimal("8.2500"),
+                new BigDecimal("12.5000"),
                 new BigDecimal("0.0000"),
+                new BigDecimal("0.0000"),
+                new BigDecimal("0.0000"),
+                new BigDecimal("0.0000"),
+                new BigDecimal("0.5000"),
+                new BigDecimal("40.0000"),
+                true,
                 List.of(openPosition));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
@@ -74,27 +79,29 @@ class BacktestReportJsonPrinterTest {
                 ;
         JsonNode metadata = root.get("metadata");
         JsonNode performance = root.get("performance");
-        JsonNode positions = root.get("positions");
         JsonNode notes = root.get("notes");
 
-        assertEquals("v4", root.get("reportVersion").asText());
+        assertEquals("v5", root.get("reportVersion").asText());
         assertEquals("BTCUSDT", metadata.get("symbol").asText());
         assertEquals("action_bar_close", metadata.get("executionModel").asText());
         assertEquals("ema_cross", root.get("strategy").get("name").asText());
         assertEquals(3, root.get("strategy").get("parameters").get("shortEma").asInt());
         assertEquals(7, root.get("strategy").get("parameters").get("longEma").asInt());
-        assertTrue(performance.get("hasOpenPosition").asBoolean());
-        assertEquals(1, positions.size());
-        assertEquals("OPEN", positions.get(0).get("status").asText());
-        assertEquals(0, new BigDecimal("97198.3700").compareTo(positions.get(0).get("entryPrice").decimalValue()));
-        assertEquals(0, new BigDecimal("0.1010").compareTo(positions.get(0).get("quantity").decimalValue()));
-        assertTrue(positions.get(0).get("exitTime").isNull());
-        assertTrue(positions.get(0).get("exitPrice").isNull());
-        assertEquals(1, notes.size());
+        assertEquals(1, performance.get("closedTradeCount").asInt());
+        assertEquals(0, new BigDecimal("-1.8349").compareTo(performance.get("totalReturnPercent").decimalValue()));
+        assertEquals(0, new BigDecimal("8.2500").compareTo(performance.get("buyAndHoldReturnPercent").decimalValue()));
+        assertEquals(0, new BigDecimal("12.5000").compareTo(performance.get("maxDrawdownPercent").decimalValue()));
+        assertEquals(0, new BigDecimal("0.0000").compareTo(performance.get("profitFactor").decimalValue()));
+        assertEquals(0, new BigDecimal("0.0000").compareTo(performance.get("averageWinningTrade").decimalValue()));
+        assertEquals(0, new BigDecimal("0.0000").compareTo(performance.get("averageLosingTrade").decimalValue()));
+        assertEquals(0, new BigDecimal("0.5000").compareTo(performance.get("timeInMarketDays").decimalValue()));
+        assertEquals(0, new BigDecimal("40.0000").compareTo(performance.get("exposurePercent").decimalValue()));
+        assertFalse(root.has("positions"));
+        assertEquals(2, notes.size());
     }
 
     @Test
-    void print_writesNullPositionFieldsWhenNoPositionIsOpen() throws Exception {
+    void print_usesCompactPerformanceSchemaWhenNoPositionIsOpen() throws Exception {
         BacktestReportJsonPrinter printer = new BacktestReportJsonPrinter();
         StrategyDefinition strategy = new StrategyDefinition("ema_cross", new StrategyParameters(3, 7));
         BacktestConfig config = new BacktestConfig(
@@ -103,8 +110,8 @@ class BacktestReportJsonPrinterTest {
                 "1h",
                 strategy,
                 new PortfolioConfig(10000.0));
-        BacktestReport report = new BacktestReport(
-                new BacktestMetadata(
+        Report report = new Report(
+                new Metadata(
                         BotMode.BACKTEST,
                         "BTCUSDT",
                         "1h",
@@ -114,13 +121,19 @@ class BacktestReportJsonPrinterTest {
                         "action_bar_close",
                         "all_in_spot",
                         strategy),
-                2,
                 1,
-                false,
                 new BigDecimal("10000.0000"),
                 new BigDecimal("10010.0000"),
                 new BigDecimal("0.1000"),
+                new BigDecimal("1.5000"),
+                new BigDecimal("3.2500"),
+                new BigDecimal("1.8000"),
                 new BigDecimal("100.0000"),
+                new BigDecimal("100.0000"),
+                new BigDecimal("0.0000"),
+                new BigDecimal("0.0000"),
+                new BigDecimal("0.0000"),
+                false,
                 List.of());
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
@@ -129,8 +142,15 @@ class BacktestReportJsonPrinterTest {
         JsonNode root = new ObjectMapper().readTree(output.toString(StandardCharsets.UTF_8));
         JsonNode performance = root.get("performance");
 
-        assertFalse(performance.get("hasOpenPosition").asBoolean());
-        assertEquals(0, root.get("positions").size());
-        assertEquals(0, root.get("notes").size());
+        assertEquals(1, performance.get("closedTradeCount").asInt());
+        assertEquals(0, new BigDecimal("1.5000").compareTo(performance.get("buyAndHoldReturnPercent").decimalValue()));
+        assertEquals(0, new BigDecimal("3.2500").compareTo(performance.get("maxDrawdownPercent").decimalValue()));
+        assertEquals(0, new BigDecimal("1.8000").compareTo(performance.get("profitFactor").decimalValue()));
+        assertEquals(0, new BigDecimal("100.0000").compareTo(performance.get("averageWinningTrade").decimalValue()));
+        assertEquals(0, new BigDecimal("0.0000").compareTo(performance.get("averageLosingTrade").decimalValue()));
+        assertEquals(0, new BigDecimal("0.0000").compareTo(performance.get("timeInMarketDays").decimalValue()));
+        assertEquals(0, new BigDecimal("0.0000").compareTo(performance.get("exposurePercent").decimalValue()));
+        assertFalse(root.has("positions"));
+        assertEquals(1, root.get("notes").size());
     }
 }

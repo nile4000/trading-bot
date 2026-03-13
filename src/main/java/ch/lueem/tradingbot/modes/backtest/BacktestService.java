@@ -2,13 +2,11 @@ package ch.lueem.tradingbot.modes.backtest;
 
 import java.io.PrintStream;
 
-import ch.lueem.tradingbot.adapters.config.ApplicationConfig;
-import ch.lueem.tradingbot.adapters.config.BacktestConfig;
-import ch.lueem.tradingbot.adapters.config.LoggingConfig;
-import ch.lueem.tradingbot.modes.backtest.model.BacktestReport;
+import ch.lueem.tradingbot.adapters.config.ReportingConfig;
+import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
 import ch.lueem.tradingbot.adapters.reporting.BacktestReportJsonPrinter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import ch.lueem.tradingbot.modes.backtest.model.Report;
+import org.jboss.logging.Logger;
 
 /**
  * Runs the backtest use case end-to-end and delegates technical logging and
@@ -16,40 +14,42 @@ import org.slf4j.LoggerFactory;
  */
 public class BacktestService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(BacktestService.class);
+    private static final Logger LOG = Logger.getLogger(BacktestService.class);
 
-    private final BacktestRunner backtestRunner;
+    private final Runner runner;
     private final BacktestReportJsonPrinter reportPrinter;
 
     public BacktestService() {
-        this(new BacktestRunner(), new BacktestReportJsonPrinter());
+        this(new Runner(), new BacktestReportJsonPrinter());
     }
 
-    public BacktestService(BacktestRunner backtestRunner, BacktestReportJsonPrinter reportPrinter) {
-        this.backtestRunner = backtestRunner;
+    public BacktestService(Runner runner, BacktestReportJsonPrinter reportPrinter) {
+        this.runner = runner;
         this.reportPrinter = reportPrinter;
     }
 
-    public void run(ApplicationConfig config, PrintStream out) {
-        BacktestConfig backtest = config.backtest();
+    public void run(
+            BacktestConfig backtest,
+            ReportingConfig reporting,
+            boolean lifecycleEvents,
+            PrintStream out) {
+        logLifecycleStart(lifecycleEvents, backtest);
 
-        logLifecycleStart(config.logging(), backtest);
+        var report = runner.backtest(backtest);
 
-        BacktestReport report = backtestRunner.run(backtest);
-
-        logLifecycleFinish(config.logging(), report);
+        logLifecycleFinish(lifecycleEvents, report);
 
         reportPrinter.print(
                 out,
-                config.reporting(),
+                reporting,
                 backtest,
                 report);
     }
 
-    private void logLifecycleStart(LoggingConfig logging, BacktestConfig backtest) {
-        if (logging.lifecycleEvents()) {
-            LOG.info(
-                    "Starting backtest. symbol={}, timeframe={}, strategy={}, csvPath={}",
+    private void logLifecycleStart(boolean lifecycleEvents, BacktestConfig backtest) {
+        if (lifecycleEvents) {
+            LOG.infof(
+                    "Starting backtest. symbol=%s, timeframe=%s, strategy=%s, csvPath=%s",
                     backtest.symbol(),
                     backtest.timeframe(),
                     backtest.strategy().name(),
@@ -57,10 +57,10 @@ public class BacktestService {
         }
     }
 
-    private void logLifecycleFinish(LoggingConfig logging, BacktestReport report) {
-        if (logging.lifecycleEvents()) {
-            LOG.info(
-                    "Backtest finished. mode={}, symbol={}, timeframe={}, barCount={}, dataStart={}, dataEnd={}, executionModel={}, closedTradeCount={}, totalReturnPercent={}",
+    private void logLifecycleFinish(boolean lifecycleEvents, Report report) {
+        if (lifecycleEvents) {
+            LOG.infof(
+                    "Backtest finished. mode=%s, symbol=%s, timeframe=%s, barCount=%d, dataStart=%s, dataEnd=%s, executionModel=%s, closedTradeCount=%d, totalReturnPercent=%s",
                     report.metadata().mode(),
                     report.metadata().symbol(),
                     report.metadata().timeframe(),

@@ -8,19 +8,19 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import ch.lueem.tradingbot.adapters.config.BinanceSpotTestnetConfig;
-import ch.lueem.tradingbot.adapters.config.LoggingConfig;
-import ch.lueem.tradingbot.adapters.config.PaperBotConfig;
-import ch.lueem.tradingbot.adapters.config.PaperConfig;
-import ch.lueem.tradingbot.adapters.config.PaperExchange;
-import ch.lueem.tradingbot.adapters.config.PaperExecutionConfig;
-import ch.lueem.tradingbot.adapters.config.PaperOrderMode;
-import ch.lueem.tradingbot.adapters.config.PaperStrategyConfig;
+import ch.lueem.tradingbot.adapters.config.paper.BinanceConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperBotConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperExchange;
+import ch.lueem.tradingbot.adapters.config.paper.PaperExecutionConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperOrderMode;
+import ch.lueem.tradingbot.adapters.config.paper.PaperStrategyConfig;
 import ch.lueem.tradingbot.adapters.portfolio.StaticPortfolioService;
 import ch.lueem.tradingbot.core.runtime.BotMode;
-import ch.lueem.tradingbot.core.execution.ExecutionResult;
 import ch.lueem.tradingbot.core.execution.ExecutionService;
-import ch.lueem.tradingbot.core.execution.ExecutionStatus;
+import ch.lueem.tradingbot.core.execution.Request;
+import ch.lueem.tradingbot.core.execution.Result;
+import ch.lueem.tradingbot.core.execution.Status;
 import ch.lueem.tradingbot.core.runtime.MarketSnapshot;
 import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
 import ch.lueem.tradingbot.core.runtime.SequenceMarketSnapshotProvider;
@@ -39,7 +39,7 @@ class PaperBotLoopTest {
         AtomicLong sleptMillis = new AtomicLong();
         PaperBotLoop loop = new PaperBotLoop(completedCycles -> completedCycles < 2, sleptMillis::set);
 
-        loop.run(session(executions), new LoggingConfig(false));
+        loop.run(session(executions), false);
 
         assertEquals(2, executions.get());
         assertEquals(250L, sleptMillis.get());
@@ -47,15 +47,15 @@ class PaperBotLoopTest {
 
     @Test
     void executionLabel_mapsExecutedToPlaced() {
-        assertEquals("PLACED", PaperBotLoop.executionLabel(runtimeCycleResult(ExecutionStatus.EXECUTED, true)));
-        assertEquals("VALIDATED", PaperBotLoop.executionLabel(runtimeCycleResult(ExecutionStatus.VALIDATED, true)));
-        assertEquals("SKIPPED", PaperBotLoop.executionLabel(runtimeCycleResult(ExecutionStatus.SKIPPED, false)));
+        assertEquals("PLACED", PaperBotLoop.executionLabel(runtimeCycleResult(Status.EXECUTED, true)));
+        assertEquals("VALIDATED", PaperBotLoop.executionLabel(runtimeCycleResult(Status.VALIDATED, true)));
+        assertEquals("SKIPPED", PaperBotLoop.executionLabel(runtimeCycleResult(Status.SKIPPED, false)));
     }
 
     @Test
     void positionLabel_usesPortfolioState() {
-        assertEquals("OPEN", PaperBotLoop.positionLabel(runtimeCycleResult(ExecutionStatus.EXECUTED, true)));
-        assertEquals("FLAT", PaperBotLoop.positionLabel(runtimeCycleResult(ExecutionStatus.SKIPPED, false)));
+        assertEquals("OPEN", PaperBotLoop.positionLabel(runtimeCycleResult(Status.EXECUTED, true)));
+        assertEquals("FLAT", PaperBotLoop.positionLabel(runtimeCycleResult(Status.SKIPPED, false)));
     }
 
     private PaperBotSession session(AtomicInteger executions) {
@@ -79,11 +79,11 @@ class PaperBotLoopTest {
                         false,
                         new BigDecimal("25.0")),
                 new PaperStrategyConfig("queued_actions", null, List.of(TradeAction.BUY, TradeAction.SELL)),
-                new BinanceSpotTestnetConfig("BINANCE_TESTNET_API_KEY", "BINANCE_TESTNET_SECRET_KEY", 15000.0));
+                new BinanceConfig("api-key", "secret-key", 15000.0));
         return new PaperBotSession(runtime, paper, "https://testnet.binance.vision");
     }
 
-    private RuntimeCycleResult runtimeCycleResult(ExecutionStatus status, boolean openPosition) {
+    private RuntimeCycleResult runtimeCycleResult(Status status, boolean openPosition) {
         return new RuntimeCycleResult(
                 new MarketSnapshot(
                         "BTCUSDT",
@@ -103,7 +103,7 @@ class PaperBotLoopTest {
                                         OffsetDateTime.parse("2026-03-12T10:14:30Z"))
                                 : ch.lueem.tradingbot.core.portfolio.PositionSnapshot.flat()),
                 TradeAction.HOLD,
-                new ExecutionResult(status, status != ExecutionStatus.SKIPPED, openPosition, "detail"));
+                new Result(status, status != Status.SKIPPED, openPosition, "detail"));
     }
 
     private static final class CountingExecutionService implements ExecutionService {
@@ -114,9 +114,9 @@ class PaperBotLoopTest {
         }
 
         @Override
-        public ExecutionResult execute(ch.lueem.tradingbot.core.execution.ExecutionRequest request) {
+        public Result execute(Request request) {
             executions.incrementAndGet();
-            return new ExecutionResult(ExecutionStatus.VALIDATED, false, false, "validated_only");
+            return new Result(Status.VALIDATED, false, false, "validated_only");
         }
     }
 }

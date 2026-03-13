@@ -6,13 +6,10 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
-import ch.lueem.tradingbot.adapters.config.BacktestConfig;
 import ch.lueem.tradingbot.adapters.config.ReportingConfig;
-import ch.lueem.tradingbot.modes.backtest.model.BacktestReport;
-import ch.lueem.tradingbot.adapters.reporting.model.BacktestMetadataSection;
-import ch.lueem.tradingbot.adapters.reporting.model.BacktestPerformanceSection;
+import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
 import ch.lueem.tradingbot.adapters.reporting.model.BacktestReportDocument;
-import ch.lueem.tradingbot.adapters.reporting.model.BacktestStrategySection;
+import ch.lueem.tradingbot.modes.backtest.model.Report;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -23,7 +20,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  */
 public class BacktestReportJsonPrinter {
 
-    private static final String REPORT_VERSION = "v4";
+    private static final String REPORT_VERSION = "v5";
     private final ObjectMapper prettyObjectMapper;
     private final ObjectMapper compactObjectMapper;
 
@@ -36,24 +33,15 @@ public class BacktestReportJsonPrinter {
             PrintStream out,
             ReportingConfig reporting,
             BacktestConfig config,
-            BacktestReport report) {
-        if (out == null) {
-            throw new IllegalArgumentException("out must not be null.");
-        }
-        if (reporting == null) {
-            throw new IllegalArgumentException("reporting must not be null.");
-        }
-        if (config == null) {
-            throw new IllegalArgumentException("config must not be null.");
-        }
-        if (report == null) {
-            throw new IllegalArgumentException("report must not be null.");
+            Report report) {
+        if (out == null || reporting == null || config == null || report == null) {
+            throw new IllegalArgumentException("out, reporting, config, and report must not be null.");
         }
 
         out.println(toJson(toDocument(config, report, reporting), reporting));
     }
 
-    private List<String> buildNotes(BacktestReport report, ReportingConfig reporting) {
+    private List<String> buildNotes(Report report, ReportingConfig reporting) {
         List<String> notes = new ArrayList<>();
         if (!reporting.includeNotes()) {
             return notes;
@@ -64,6 +52,7 @@ public class BacktestReportJsonPrinter {
         if (report.hasOpenPosition()) {
             notes.add("An open position remains at the end of the backtest and is valued mark-to-market.");
         }
+        notes.add("Fees and slippage are not modeled in this report.");
         return notes;
     }
 
@@ -77,15 +66,14 @@ public class BacktestReportJsonPrinter {
 
     private BacktestReportDocument toDocument(
             BacktestConfig config,
-            BacktestReport report,
+            Report report,
             ReportingConfig reporting) {
         return new BacktestReportDocument(
                 OffsetDateTime.now(ZoneOffset.UTC).toString(),
                 REPORT_VERSION,
-                buildMetadataSection(config, report),
-                buildStrategySection(report),
-                buildPerformanceSection(report),
-                report.positions(),
+                buildMetadata(config, report),
+                buildStrategy(report),
+                buildPerformance(report),
                 buildNotes(report, reporting));
     }
 
@@ -93,8 +81,8 @@ public class BacktestReportJsonPrinter {
         return prettyPrint ? prettyObjectMapper : compactObjectMapper;
     }
 
-    private BacktestMetadataSection buildMetadataSection(BacktestConfig config, BacktestReport report) {
-        return new BacktestMetadataSection(
+    private BacktestReportDocument.Metadata buildMetadata(BacktestConfig config, Report report) {
+        return new BacktestReportDocument.Metadata(
                 report.metadata().mode(),
                 config.csvPath().toString(),
                 report.metadata().symbol(),
@@ -106,20 +94,25 @@ public class BacktestReportJsonPrinter {
                 report.metadata().positionSizingModel());
     }
 
-    private BacktestStrategySection buildStrategySection(BacktestReport report) {
-        return new BacktestStrategySection(
+    private BacktestReportDocument.Strategy buildStrategy(Report report) {
+        return new BacktestReportDocument.Strategy(
                 report.metadata().strategy().name(),
                 report.metadata().strategy().parameters());
     }
 
-    private BacktestPerformanceSection buildPerformanceSection(BacktestReport report) {
-        return new BacktestPerformanceSection(
-                report.executedSignalCount(),
+    private BacktestReportDocument.Performance buildPerformance(Report report) {
+        return new BacktestReportDocument.Performance(
                 report.closedTradeCount(),
-                report.hasOpenPosition(),
                 report.initialCash(),
                 report.finalValue(),
                 report.totalReturnPercent(),
-                report.winRatePercent());
+                report.buyAndHoldReturnPercent(),
+                report.maxDrawdownPercent(),
+                report.profitFactor(),
+                report.winRatePercent(),
+                report.averageWinningTrade(),
+                report.averageLosingTrade(),
+                report.timeInMarketDays(),
+                report.exposurePercent());
     }
 }

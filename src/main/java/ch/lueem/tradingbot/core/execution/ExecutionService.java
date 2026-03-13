@@ -5,5 +5,5 @@ package ch.lueem.tradingbot.core.execution;
  */
 public interface ExecutionService {
 
-    ExecutionResult execute(ExecutionRequest request);
+    Result execute(Request request);
 }

@@ -1,7 +1,7 @@
 package ch.lueem.tradingbot.modes.paper;
 
-import ch.lueem.tradingbot.adapters.config.ApplicationConfig;
-import ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClientFactory;
+import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
+import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory;
 
 /**
  * Orchestrates one configured paper bot run without owning infrastructure setup
@@ -13,7 +13,7 @@ public class PaperBotService {
     private final PaperBotLoop loop;
 
     public PaperBotService() {
-        this(new PaperBotSetup(new BinanceSpotTestnetClientFactory(), System::getenv), new PaperBotLoop());
+        this(new PaperBotSetup(new BinanceClientFactory()), new PaperBotLoop());
     }
 
     public PaperBotService(PaperBotSetup setup, PaperBotLoop loop) {
@@ -21,8 +21,7 @@ public class PaperBotService {
         this.loop = loop;
     }
 
-    public void run(ApplicationConfig config) {
-        config.paper().validate();
-        loop.run(setup.createSession(config.paper()), config.logging());
+    public void run(PaperConfig paper, boolean lifecycleEvents) {
+        loop.run(setup.createSession(paper), lifecycleEvents);
     }
 }

@@ -8,8 +8,7 @@ Java-21-Maven-Projekt fuer Backtesting und einen technischen Paper-Testnet-Pfad.
 - CSV-basierter Datenimport fuer OHLCV-Bars
 - Erste Strategien fuer `BACKTEST` und `PAPER`
 - JSON als Backtest-Ausgabeformat
-- Logback fuer technische Laufzeit-Logs
-- Anwendungsmodi sind `BACKTEST | PAPER`
+- Quarkus als Runtime fuer Bootstrap, Config, Profile und Command-Entry
 
 Nicht Teil dieser V1:
 
@@ -38,11 +37,11 @@ Aktuelle Ausbau-Richtung:
 
 ## Architektur
 
-- `app`: schlanker Einstiegspunkt und Moduswahl
+- `quarkus`: Command-Entry, Config-Mapping und CDI-Wiring
 - `core`: modusunabhaengige Trading-Logik und Ports
 - `modes.backtest`: historischer Ablauf, Runtime-Ausfuehrung und fachliche Reportgenerierung
 - `modes.paper`: technischer Paper-Flow, Runtime-Wiring und Runner-Loop
-- `adapters.config`: YAML-Loading und typed Config-Records
+- `adapters.config`: typed Config-Records fuer Backtest, Paper und Reporting
 - `adapters.market`: CSV- und Marktpreis-Adapter
 - `adapters.execution`: simulierte und Exchange-nahe Ausfuehrung
 - `adapters.portfolio`: konkrete Portfolio-Implementierungen
@@ -69,19 +68,17 @@ Kurzmodell:
 
 ## Konfiguration
 
-Die Standardkonfiguration liegt in [application.yml](c:/dev/trading/apps/trading-bot/src/main/resources/application.yml).
+Die Runtime-Konfiguration liegt in [application.yaml](c:/dev/trading/apps/trading-bot/src/main/resources/application.yaml).
 
-Zusaetzliche Profile:
+Quarkus-Profile fuer die Backtest-Datensaetze:
 
-- `application-backtest.yml`
-- `application-paper.yml`
+- `backtest-1m`
+- `backtest-5m`
+- `backtest-15m`
+- `backtest-1h`
+- `paper`
 
-Auswahlreihenfolge beim Start:
-
-- erstes CLI-Argument
-- `-Dtrading.config=...`
-- `TRADING_CONFIG`
-- sonst `application.yml`
+Die App nutzt keine eigene Config-Datei-Auswahl mehr. Profil-Overrides laufen ueber Quarkus `application.yaml` und `quarkus.profile`.
 
 Aktuell unterstuetzte Backtest-Strategien:
 
@@ -106,38 +103,69 @@ data/historical/BTCUSDT-1h.csv
 
 ## Ausgabe
 
-- Technische Logs laufen ueber Logback
+- Technische Logs laufen ueber Quarkus Logging
 - Backtest-Ergebnisse werden als JSON auf `stdout` ausgegeben
 - Logging und Reporting sind bewusst getrennt
 - JSON ist fuer diese V1 der feste standard
 - `PAPER` nutzt Binance Spot Testnet REST, validiert Orders oder platziert echte Testnet-Market-Orders und spiegelt erfolgreiche Aktionen in das lokale Paper-Portfolio
-- Das aktuelle JSON-Schema wird als `reportVersion: "v4"` ausgegeben
+- Das aktuelle JSON-Schema wird als `reportVersion: "v5"` ausgegeben
 - Backtest-Reports enthalten `metadata.mode: "BACKTEST"` als explizite Ausfuehrungsrealitaet
 - Geld- und Prozentwerte werden als numerische JSON-Werte mit 4 Dezimalstellen ausgegeben
 - Zaehler bleiben Integer, Statuswerte bleiben Boolean
-- Positionsdetails werden immer mit ausgegeben; offene Positionen haben `exitTime` und `exitPrice` auf `null`
 - `action_bar_close` bedeutet, dass die Ausfuehrung auf dem Close der Action-Bar simuliert wird
 
 Wichtige Report-Felder:
 
-- `barCount`, `executedSignalCount`, `closedTradeCount`: Integer
-- `hasOpenPosition`: Boolean
-- `entryPrice`, `exitPrice`, `quantity`, `profitLoss`, `profitLossPercent`: Positionsdetails pro Position
+- `barCount`, `closedTradeCount`: Integer
+- `totalReturnPercent`, `buyAndHoldReturnPercent`, `maxDrawdownPercent`, `profitFactor`, `winRatePercent`: Kernmetriken zur Backtest-Bewertung
+- `averageWinningTrade`, `averageLosingTrade`, `timeInMarketDays`, `exposurePercent`: Qualitaets- und Expositionsmetriken
 - `initialCash`, `finalValue`, `totalReturnPercent`, `winRatePercent`: numerische Werte mit 4 Dezimalstellen
 
 ## Lokal Starten
 
 ```bash
-mvn clean compile
-mvn exec:java
+mvn test
+mvn package
 ```
 
 Beispiele:
 
-```bash
-mvn -Dexec.args="application-backtest.yml" exec:java
-mvn -Dexec.args="application-paper.yml" exec:java
-mvn -Dtrading.config=application-paper.yml exec:java
+```powershell
+cmd /c "java -Dquarkus.profile=backtest-1h -jar target\\quarkus-app\\quarkus-run.jar backtest"
+cmd /c "java -Dquarkus.profile=backtest-1m -jar target\\quarkus-app\\quarkus-run.jar backtest"
+cmd /c "java -Dquarkus.profile=backtest-5m -jar target\\quarkus-app\\quarkus-run.jar backtest"
+cmd /c "java -Dquarkus.profile=backtest-15m -jar target\\quarkus-app\\quarkus-run.jar backtest"
+cmd /c "java -Dquarkus.profile=paper -jar target\\quarkus-app\\quarkus-run.jar paper"
+```
+
+Alternativ lokal ohne Paket-Build:
+
+```powershell
+mvn quarkus:dev '-Dquarkus.args=backtest' '-Dquarkus.profile=backtest-1h'
+```
+
+Fuer die groesseren historischen BTCUSDT-Dateien ist lokal oft ein begrenzter Heap stabiler als die JVM-Defaults:
+
+```powershell
+$env:MAVEN_OPTS='-Xms128m -Xmx768m -XX:+UseSerialGC'
+cmd /c "java -Xms128m -Xmx768m -XX:+UseSerialGC -Dquarkus.profile=backtest-1h -jar target\\quarkus-app\\quarkus-run.jar backtest"
+```
+
+Aktuell muessen die Binance-Testnet-Secrets fuer `PAPER` noch als Prozess-Umgebungsvariablen gesetzt werden.
+Wenn du eine lokale `.env` im Projektverzeichnis hast, kannst du sie in PowerShell so in die aktuelle Session laden:
+
+```powershell
+Get-Content .env | ForEach-Object {
+  if ($_ -match '^\s*#' -or $_ -match '^\s*$') { return }
+  $name, $value = $_ -split '=', 2
+  [System.Environment]::SetEnvironmentVariable($name.Trim(), $value.Trim(), 'Process')
+}
+```
+
+Danach startest du den Paper-Bot so:
+
+```powershell
+cmd /c "java -Dquarkus.profile=paper -jar target\\quarkus-app\\quarkus-run.jar paper"
 ```
 
 Fuer `PAPER` mit echten Testnet-Orders:

@@ -2,17 +2,16 @@ package ch.lueem.tradingbot.modes.paper;
 
 import java.math.BigDecimal;
 
-import ch.lueem.tradingbot.adapters.config.PaperConfig;
-import ch.lueem.tradingbot.adapters.config.PaperExchange;
-import ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClient;
-import ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClientFactory;
-import ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetExecutionService;
+import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
+import ch.lueem.tradingbot.adapters.config.paper.PaperExchange;
+import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
+import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory;
+import ch.lueem.tradingbot.adapters.execution.binance.flow.BinancePaperExecutionService;
 import ch.lueem.tradingbot.adapters.market.BinanceTickerPriceMarketSnapshotProvider;
 import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.core.runtime.TradingRuntime;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorContext;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorFactory;
-import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
 
 /**
  * Resolves secrets and infrastructure dependencies for the configured paper bot
@@ -20,40 +19,33 @@ import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
  */
 public class PaperBotSetup {
 
-    private final BinanceSpotTestnetClientFactory clientFactory;
-    private final EnvironmentVariableResolver environmentVariableResolver;
+    private final BinanceClientFactory clientFactory;
     private final StrategyEvaluatorFactory strategyFactory;
 
-    public PaperBotSetup(
-            BinanceSpotTestnetClientFactory clientFactory,
-            EnvironmentVariableResolver environmentVariableResolver) {
-        this(clientFactory, environmentVariableResolver, new StrategyEvaluatorFactory());
+    public PaperBotSetup(BinanceClientFactory clientFactory) {
+        this(clientFactory, new StrategyEvaluatorFactory());
     }
 
     public PaperBotSetup(
-            BinanceSpotTestnetClientFactory clientFactory,
-            EnvironmentVariableResolver environmentVariableResolver,
+            BinanceClientFactory clientFactory,
             StrategyEvaluatorFactory strategyFactory) {
         this.clientFactory = clientFactory;
-        this.environmentVariableResolver = environmentVariableResolver;
         this.strategyFactory = strategyFactory;
     }
 
     public PaperBotSession createSession(PaperConfig paper) {
-        paper.validate();
         ensureSupportedExchange(paper);
 
-        BinanceSpotTestnetClient client = createClient(paper);
-        BinanceTickerPriceMarketSnapshotProvider marketSnapshotProvider = new BinanceTickerPriceMarketSnapshotProvider(client);
-        PaperPortfolioService portfolioService = createPortfolioService(paper);
-        TradingRuntime runtime = createRuntime(paper, client, marketSnapshotProvider, portfolioService);
+        var client = createClient(paper);
+        var marketSnapshotProvider = new BinanceTickerPriceMarketSnapshotProvider(client);
+        var portfolioService = createPortfolioService(paper);
+        var runtime = createRuntime(paper, client, marketSnapshotProvider, portfolioService);
         return new PaperBotSession(runtime, paper, client.baseUrl());
     }
 
-    private String resolveRequiredSecret(String environmentVariableName) {
-        String value = environmentVariableResolver.get(environmentVariableName);
+    private String requireSecret(String value, String propertyName) {
         if (value == null || value.isBlank()) {
-            throw new IllegalStateException("Missing required environment variable: " + environmentVariableName);
+            throw new IllegalStateException("Missing required configuration value: " + propertyName);
         }
         return value;
     }
@@ -64,10 +56,10 @@ public class PaperBotSetup {
         }
     }
 
-    private BinanceSpotTestnetClient createClient(PaperConfig paper) {
+    private BinanceClient createClient(PaperConfig paper) {
         return clientFactory.create(
-                resolveRequiredSecret(paper.binance().apiKeyEnv()),
-                resolveRequiredSecret(paper.binance().secretKeyEnv()));
+                requireSecret(paper.binance().apiKey(), "paper.binance.apiKey"),
+                requireSecret(paper.binance().secretKey(), "paper.binance.secretKey"));
     }
 
     private PaperPortfolioService createPortfolioService(PaperConfig paper) {
@@ -78,10 +70,10 @@ public class PaperBotSetup {
 
     private TradingRuntime createRuntime(
             PaperConfig paper,
-            BinanceSpotTestnetClient client,
+            BinanceClient client,
             BinanceTickerPriceMarketSnapshotProvider marketSnapshotProvider,
             PaperPortfolioService portfolioService) {
-        StrategyActionEvaluator evaluator = strategyFactory.create(
+        var evaluator = strategyFactory.create(
                 paper.strategy().toStrategyDefinition(),
                 StrategyEvaluatorContext.ta4jOrQueued(marketSnapshotProvider.series(), paper.strategy().actions()));
         return new TradingRuntime(
@@ -89,7 +81,7 @@ public class PaperBotSetup {
                 marketSnapshotProvider,
                 portfolioService,
                 evaluator,
-                new BinanceSpotTestnetExecutionService(
+                new BinancePaperExecutionService(
                         client,
                         portfolioService,
                         paper.execution().orderQuantity(),

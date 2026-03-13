@@ -1,13 +1,14 @@
 package ch.lueem.tradingbot.adapters.market;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Duration;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
-import ch.lueem.tradingbot.adapters.execution.BinanceSpotTestnetClient;
+import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
 import ch.lueem.tradingbot.core.runtime.MarketSnapshot;
 import ch.lueem.tradingbot.core.runtime.MarketSnapshotProvider;
 import ch.lueem.tradingbot.core.runtime.TradingDefinition;
@@ -20,19 +21,23 @@ import org.ta4j.core.BaseBarSeriesBuilder;
  */
 public class BinanceTickerPriceMarketSnapshotProvider implements MarketSnapshotProvider {
 
-    private final BinanceSpotTestnetClient client;
+    private final BinanceClient client;
+    private final Clock clock;
     private final BarSeries series;
     private final List<BigDecimal> closePriceHistory;
-    private int nextBarIndex;
 
-    public BinanceTickerPriceMarketSnapshotProvider(BinanceSpotTestnetClient client) {
-        if (client == null) {
-            throw new IllegalArgumentException("client must not be null.");
+    public BinanceTickerPriceMarketSnapshotProvider(BinanceClient client) {
+        this(client, Clock.systemUTC());
+    }
+
+    BinanceTickerPriceMarketSnapshotProvider(BinanceClient client, Clock clock) {
+        if (client == null || clock == null) {
+            throw new IllegalArgumentException("client and clock must not be null.");
         }
         this.client = client;
+        this.clock = clock;
         this.series = new BaseBarSeriesBuilder().withName("paper-live-series").build();
         this.closePriceHistory = new ArrayList<>();
-        this.nextBarIndex = 0;
     }
 
     @Override
@@ -41,26 +46,19 @@ public class BinanceTickerPriceMarketSnapshotProvider implements MarketSnapshotP
             throw new IllegalArgumentException("definition must not be null.");
         }
 
-        BigDecimal price = client.loadSymbolPrice(definition.symbol());
-        Duration timeframe = parseTimeframe(definition.timeframe());
-        OffsetDateTime observedAt = nextObservedAt(timeframe);
-        series.addBar(series.barBuilder()
-                .timePeriod(timeframe)
-                .endTime(observedAt.toInstant())
-                .openPrice(price.toPlainString())
-                .highPrice(price.toPlainString())
-                .lowPrice(price.toPlainString())
-                .closePrice(price.toPlainString())
-                .volume("0")
-                .build());
-        closePriceHistory.add(price);
+        var price = client.loadSymbolPrice(definition.symbol());
+        var timeframe = parseTimeframe(definition.timeframe());
+        var observedAt = clock.instant();
+        var barEndTime = alignToBarEnd(observedAt, timeframe);
+
+        upsertBar(timeframe, barEndTime, price);
         return new MarketSnapshot(
                 definition.symbol(),
                 definition.timeframe(),
-                observedAt,
+                observedAt.atOffset(ZoneOffset.UTC),
                 price,
                 List.copyOf(closePriceHistory),
-                nextBarIndex++);
+                series.getEndIndex());
     }
 
     public synchronized BarSeries series() {
@@ -71,10 +69,42 @@ public class BinanceTickerPriceMarketSnapshotProvider implements MarketSnapshotP
         return CsvHistoricalMarketSnapshotProvider.parseTimeframe(timeframe);
     }
 
-    private OffsetDateTime nextObservedAt(Duration timeframe) {
+    private void upsertBar(Duration timeframe, Instant barEndTime, BigDecimal price) {
         if (series.isEmpty()) {
-            return OffsetDateTime.now(ZoneOffset.UTC);
+            addBar(timeframe, barEndTime, price);
+            return;
         }
-        return series.getLastBar().getEndTime().atOffset(ZoneOffset.UTC).plus(timeframe);
+
+        var lastBarEndTime = series.getLastBar().getEndTime();
+        if (barEndTime.isBefore(lastBarEndTime)) {
+            throw new IllegalStateException("Observed market time moved backwards for the live paper series.");
+        }
+        if (barEndTime.equals(lastBarEndTime)) {
+            series.addPrice(price);
+            closePriceHistory.set(closePriceHistory.size() - 1, price);
+            return;
+        }
+
+        addBar(timeframe, barEndTime, price);
+    }
+
+    private void addBar(Duration timeframe, Instant barEndTime, BigDecimal price) {
+        series.addBar(series.barBuilder()
+                .timePeriod(timeframe)
+                .endTime(barEndTime)
+                .openPrice(price.toPlainString())
+                .highPrice(price.toPlainString())
+                .lowPrice(price.toPlainString())
+                .closePrice(price.toPlainString())
+                .volume("0")
+                .build());
+        closePriceHistory.add(price);
+    }
+
+    private Instant alignToBarEnd(Instant observedAt, Duration timeframe) {
+        long timeframeSeconds = timeframe.toSeconds();
+        long observedSeconds = observedAt.getEpochSecond();
+        long nextBoundarySeconds = ((observedSeconds / timeframeSeconds) + 1) * timeframeSeconds;
+        return Instant.ofEpochSecond(nextBoundarySeconds);
     }
 }

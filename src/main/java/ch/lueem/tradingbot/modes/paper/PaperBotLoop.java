@@ -1,10 +1,8 @@
 package ch.lueem.tradingbot.modes.paper;
 
-import ch.lueem.tradingbot.adapters.config.LoggingConfig;
-import ch.lueem.tradingbot.core.execution.ExecutionStatus;
+import ch.lueem.tradingbot.core.execution.Status;
 import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 /**
  * Runs the paper bot continuously and emits technical lifecycle logs around
@@ -12,7 +10,7 @@ import org.slf4j.LoggerFactory;
  */
 public class PaperBotLoop {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PaperBotLoop.class);
+    private static final Logger LOG = Logger.getLogger(PaperBotLoop.class);
 
     private final PaperBotLoopCondition loopCondition;
     private final PaperBotPause pause;
@@ -33,22 +31,22 @@ public class PaperBotLoop {
         this.pause = pause;
     }
 
-    public void run(PaperBotSession session, LoggingConfig logging) {
-        logStartup(logging, session);
+    public void run(PaperBotSession session, boolean lifecycleEvents) {
+        logStartup(lifecycleEvents, session);
 
         int completedCycles = 0;
         while (loopCondition.shouldContinue(completedCycles)) {
             RuntimeCycleResult tickResult = session.runtime().cycle();
-            logCycle(logging, tickResult);
+            logCycle(lifecycleEvents, tickResult);
             completedCycles++;
             pause.sleep(session.paper().execution().tickIntervalMillis());
         }
     }
 
-    private void logStartup(LoggingConfig logging, PaperBotSession session) {
-        if (logging.lifecycleEvents()) {
-            LOG.info(
-                    "Starting paper bot. botId={}, symbol={}, timeframe={}, exchange={}, orderMode={}, restBaseUrl={}",
+    private void logStartup(boolean lifecycleEvents, PaperBotSession session) {
+        if (lifecycleEvents) {
+            LOG.infof(
+                    "Starting paper bot. botId=%s, symbol=%s, timeframe=%s, exchange=%s, orderMode=%s, restBaseUrl=%s",
                     session.paper().bot().botId(),
                     session.paper().bot().symbol(),
                     session.paper().bot().timeframe(),
@@ -58,10 +56,10 @@ public class PaperBotLoop {
         }
     }
 
-    private void logCycle(LoggingConfig logging, RuntimeCycleResult tickResult) {
-        if (logging.lifecycleEvents()) {
-            LOG.info(
-                    "Paper tick. decision={}, execution={}, position={}, price={}, detail={}",
+    private void logCycle(boolean lifecycleEvents, RuntimeCycleResult tickResult) {
+        if (lifecycleEvents) {
+            LOG.infof(
+                    "Paper tick. decision=%s, execution=%s, position=%s, price=%s, detail=%s",
                     tickResult.action(),
                     executionLabel(tickResult),
                     positionLabel(tickResult),
@@ -71,7 +69,7 @@ public class PaperBotLoop {
     }
 
     static String executionLabel(RuntimeCycleResult tickResult) {
-        return tickResult.executionResult().status() == ExecutionStatus.EXECUTED
+        return tickResult.executionResult().status() == Status.EXECUTED
                 ? "PLACED"
                 : tickResult.executionResult().status().name();
     }

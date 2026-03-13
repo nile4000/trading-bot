@@ -10,12 +10,12 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import ch.lueem.tradingbot.core.runtime.BotMode;
-import ch.lueem.tradingbot.core.execution.ExecutionRequest;
-import ch.lueem.tradingbot.core.execution.ExecutionResult;
 import ch.lueem.tradingbot.core.execution.ExecutionService;
-import ch.lueem.tradingbot.core.execution.ExecutionStatus;
+import ch.lueem.tradingbot.core.execution.Request;
+import ch.lueem.tradingbot.core.execution.Result;
+import ch.lueem.tradingbot.core.execution.Status;
 import ch.lueem.tradingbot.adapters.portfolio.StaticPortfolioService;
-import ch.lueem.tradingbot.adapters.execution.SimulatedExecutionService;
+import ch.lueem.tradingbot.adapters.execution.simulated.SimulatedExecutionService;
 import ch.lueem.tradingbot.adapters.portfolio.SimulatedPortfolioService;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import ch.lueem.tradingbot.core.strategy.action.QueuedActionEvaluator;
@@ -98,9 +98,9 @@ class TradingRuntimeTest {
         private final java.util.ArrayList<TradeAction> actions = new java.util.ArrayList<>();
 
         @Override
-        public ExecutionResult execute(ExecutionRequest request) {
+        public Result execute(Request request) {
             actions.add(request.tradeAction());
-            return new ExecutionResult(ExecutionStatus.VALIDATED, false, false, "validated only");
+            return new Result(Status.VALIDATED, false, false, "validated only");
         }
     }
 }
