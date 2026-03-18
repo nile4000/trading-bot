@@ -3,13 +3,11 @@ package ch.lueem.tradingbot.adapters.execution.binance.client;
 import java.math.BigDecimal;
 
 import com.binance.connector.client.common.ApiException;
-import com.binance.connector.client.common.ApiResponse;
 import com.binance.connector.client.common.configuration.ClientConfiguration;
 import com.binance.connector.client.spot.rest.api.SpotRestApi;
 import com.binance.connector.client.spot.rest.model.NewOrderRequest;
 import com.binance.connector.client.spot.rest.model.NewOrderResponse;
 import com.binance.connector.client.spot.rest.model.OrderTestRequest;
-import com.binance.connector.client.spot.rest.model.TickerPriceResponse;
 import com.binance.connector.client.spot.rest.model.TickerPriceResponse1;
 
 /**
