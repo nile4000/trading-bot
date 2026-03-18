@@ -9,6 +9,10 @@ Backtest-Ergebnisse werden als JSON ausgegeben, der `PAPER`-Modus laeuft als tec
 - JDK 21
 - Maven 3.9+
 
+### Optional fuer Hilfsskripte
+
+- Python 3.10+ (fuer `scripts/download_binance_klines.py`)
+
 ## Ausfuehrungsmodi
 
 - `BACKTEST`: historische Simulation gegen einen CSV-Datensatz
