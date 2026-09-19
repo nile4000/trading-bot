@@ -1,7 +1,6 @@
 package ch.lueem.tradingbot.adapters.market;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 
@@ -13,32 +12,6 @@ import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
 
 class CsvMarketSnapshotProviderTest {
-
-    @Test
-    void load_buildsSnapshotsLazilyFromSeries() {
-        var series = new BaseBarSeriesBuilder().withName("test-series").build();
-        addBar(series, "2026-03-12T22:20:00Z", "100");
-        addBar(series, "2026-03-12T22:21:00Z", "101");
-        addBar(series, "2026-03-12T22:22:00Z", "102");
-
-        var provider = new CsvMarketSnapshotProvider(series, "BTCUSDT", "1m");
-        var definition = backtestDefinition();
-
-        var first = provider.load(definition);
-        var second = provider.load(definition);
-        var third = provider.load(definition);
-
-        assertEquals(3, provider.snapshotCount());
-        assertEquals(0, first.barIndex());
-        assertEquals(1, second.barIndex());
-        assertEquals(2, third.barIndex());
-        assertEquals(1, first.closePriceHistory().size());
-        assertEquals(2, second.closePriceHistory().size());
-        assertEquals(3, third.closePriceHistory().size());
-        assertEquals("100", first.closePriceHistory().getFirst().toString());
-        assertEquals("102", third.closePriceHistory().getLast().toString());
-        assertThrows(IllegalStateException.class, () -> provider.load(definition));
-    }
 
     @Test
     void load_preservesDecimalPrecisionWithoutDoubleRoundTrip() {

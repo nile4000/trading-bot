@@ -83,6 +83,26 @@ public class PaperPortfolioService implements PortfolioService {
                 PositionSnapshot.flat());
     }
 
+    public synchronized void replaceSnapshot(PortfolioSnapshot reconciledSnapshot) {
+        if (reconciledSnapshot == null) {
+            throw new IllegalArgumentException("reconciledSnapshot must not be null.");
+        }
+        ensureKnownSymbol(reconciledSnapshot.symbol());
+        validateNonNegativeAmount(reconciledSnapshot.availableCash(), "availableCash");
+        PositionSnapshot position = reconciledSnapshot.position();
+        if (position == null) {
+            throw new IllegalArgumentException("position must not be null.");
+        }
+        if (position.open()) {
+            validatePositiveAmount(position.quantity(), "position.quantity");
+            validatePositiveAmount(position.entryPrice(), "position.entryPrice");
+            if (position.openedAt() == null) {
+                throw new IllegalArgumentException("position.openedAt must not be null for an open position.");
+            }
+        }
+        snapshot = reconciledSnapshot;
+    }
+
     private BigDecimal scaleMoney(BigDecimal value) {
         return value.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
     }

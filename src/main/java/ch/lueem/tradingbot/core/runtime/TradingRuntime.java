@@ -1,5 +1,7 @@
 package ch.lueem.tradingbot.core.runtime;
 
+import java.time.OffsetDateTime;
+
 import ch.lueem.tradingbot.core.execution.ExecutionService;
 import ch.lueem.tradingbot.core.execution.Request;
 import ch.lueem.tradingbot.core.execution.Result;
@@ -20,6 +22,7 @@ public class TradingRuntime {
     private final PortfolioService portfolioService;
     private final StrategyActionEvaluator evaluator;
     private final ExecutionService executionService;
+    private OffsetDateTime lastProcessedMarketTime;
 
     public TradingRuntime(
             TradingDefinition definition,
@@ -38,6 +41,16 @@ public class TradingRuntime {
         MarketSnapshot snapshot = marketSnapshotProvider.load(definition);
         validateSnapshot(snapshot);
         PortfolioSnapshot portfolioSnapshotBeforeExecution = portfolioService.getSnapshot(definition.symbol());
+
+        if (snapshot.observedAt().equals(lastProcessedMarketTime)) {
+            return new RuntimeCycleResult(
+                    snapshot,
+                    portfolioSnapshotBeforeExecution,
+                    TradeAction.HOLD,
+                    new Result(ch.lueem.tradingbot.core.execution.Status.SKIPPED, false,
+                            portfolioSnapshotBeforeExecution.position().open(), "bar_already_processed"));
+        }
+        lastProcessedMarketTime = snapshot.observedAt();
 
         TradeAction action = evaluator.evaluate(new ActionContext(
                 definition.symbol(),

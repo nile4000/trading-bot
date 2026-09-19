@@ -10,7 +10,7 @@ import ch.lueem.tradingbot.adapters.config.paper.PaperBotConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperExecutionConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperStrategyConfig;
-import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory;
+import ch.lueem.tradingbot.adapters.binance.client.BinanceClientFactory;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyParameters;
 import jakarta.enterprise.inject.Produces;

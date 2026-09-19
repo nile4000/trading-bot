@@ -1,0 +1,10 @@
+.git
+.env
+target
+data
+logs
+refs
+.idea
+.vscode
+*.iml
+*.secret

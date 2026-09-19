@@ -3,11 +3,15 @@ package ch.lueem.tradingbot.modes.paper;
 import java.math.BigDecimal;
 
 import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
-import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
-import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClientFactory;
+import ch.lueem.tradingbot.adapters.config.paper.PaperOrderMode;
+import ch.lueem.tradingbot.adapters.binance.client.BinanceClient;
+import ch.lueem.tradingbot.adapters.binance.client.BinanceClientFactory;
 import ch.lueem.tradingbot.adapters.execution.binance.flow.BinancePaperExecutionService;
-import ch.lueem.tradingbot.adapters.market.BinancePriceSnapshotProvider;
+import ch.lueem.tradingbot.adapters.execution.binance.flow.BinancePortfolioSync;
+import ch.lueem.tradingbot.adapters.execution.binance.order.BinanceClientOrderId;
+import ch.lueem.tradingbot.adapters.market.BinanceKlineSnapshotProvider;
 import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
+import ch.lueem.tradingbot.core.execution.ExecutionService;
 import ch.lueem.tradingbot.core.runtime.TradingRuntime;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorContext;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorFactory;
@@ -38,9 +42,23 @@ public class PaperBotSetup {
 
     public PaperBotSession createSession(PaperConfig paper) {
         var client = createClient(paper);
-        var marketSnapshotProvider = new BinancePriceSnapshotProvider(client);
+        var definition = paper.toTradingDefinition();
+        var marketSnapshotProvider = new BinanceKlineSnapshotProvider(client);
+        marketSnapshotProvider.initialize(
+                definition,
+                Math.max(1, strategyFactory.requiredHistoryBars(definition.strategy())));
         var portfolioService = createPortfolioService(paper);
-        var runtime = createRuntime(paper, client, marketSnapshotProvider, portfolioService);
+        var evaluator = strategyFactory.create(
+                paper.strategy().toStrategyDefinition(),
+                StrategyEvaluatorContext.ta4jOrQueued(
+                        marketSnapshotProvider.series(), paper.strategy().actions()));
+        var executionService = createExecutionService(paper, client, portfolioService);
+        var runtime = new TradingRuntime(
+                definition,
+                marketSnapshotProvider,
+                portfolioService,
+                evaluator,
+                executionService);
         return new PaperBotSession(runtime, paper, client.baseUrl());
     }
 
@@ -54,26 +72,40 @@ public class PaperBotSetup {
                 BigDecimal.valueOf(paper.execution().initialCash()));
     }
 
-    private TradingRuntime createRuntime(
+    private ExecutionService createExecutionService(
             PaperConfig paper,
             BinanceClient client,
-            BinancePriceSnapshotProvider marketSnapshotProvider,
             PaperPortfolioService portfolioService) {
-        var evaluator = strategyFactory.create(
-                paper.strategy().toStrategyDefinition(),
-                StrategyEvaluatorContext.ta4jOrQueued(marketSnapshotProvider.series(), paper.strategy().actions()));
-        return new TradingRuntime(
-                paper.toTradingDefinition(),
-                marketSnapshotProvider,
+        if (paper.execution().orderMode() == PaperOrderMode.VALIDATE_ONLY) {
+            return new BinancePaperExecutionService(
+                    client,
+                    portfolioService,
+                    paper.execution().orderQuantity(),
+                    paper.binance().recvWindowMillis(),
+                    paper.execution().orderMode(),
+                    paper.execution().placeOrdersEnabled(),
+                    paper.execution().maxOrderNotional());
+        }
+
+        var clientOrderId = new BinanceClientOrderId();
+        var symbolInfo = client.loadSymbolInfo(paper.bot().symbol());
+        var portfolioSync = new BinancePortfolioSync(
+                client,
                 portfolioService,
-                evaluator,
-                new BinancePaperExecutionService(
-                        client,
-                        portfolioService,
-                        paper.execution().orderQuantity(),
-                        paper.binance().recvWindowMillis(),
-                        paper.execution().orderMode(),
-                        paper.execution().placeOrdersEnabled(),
-                        paper.execution().maxOrderNotional()));
+                paper,
+                symbolInfo,
+                clientOrderId);
+        portfolioSync.sync();
+        return new BinancePaperExecutionService(
+                client,
+                portfolioService,
+                paper.execution().orderQuantity(),
+                paper.binance().recvWindowMillis(),
+                paper.execution().orderMode(),
+                paper.execution().placeOrdersEnabled(),
+                paper.execution().maxOrderNotional(),
+                portfolioSync,
+                clientOrderId,
+                symbolInfo);
     }
 }

@@ -93,6 +93,27 @@ class TradingRuntimeTest {
         assertFalse(third.portfolioSnapshot().position().open());
     }
 
+    @Test
+    void cycle_doesNotEvaluateTheSameCompletedBarTwice() {
+        CapturingExecutionService executionService = new CapturingExecutionService();
+        MarketSnapshot snapshot = new MarketSnapshot(
+                "BTCUSDT", "1m", OffsetDateTime.parse("2026-03-12T10:15:00Z"),
+                new BigDecimal("100.00"), List.of(new BigDecimal("100.00")), 0);
+        TradingRuntime runtime = new TradingRuntime(
+                queuedDefinition(),
+                new SequenceMarketSnapshotProvider(List.of(snapshot)),
+                new StaticPortfolioService("BTCUSDT", new BigDecimal("1000")),
+                new QueuedActionEvaluator(List.of(TradeAction.BUY, TradeAction.SELL)),
+                executionService);
+
+        runtime.cycle();
+        RuntimeCycleResult repeated = runtime.cycle();
+
+        assertEquals(List.of(TradeAction.BUY), executionService.actions);
+        assertEquals(Status.SKIPPED, repeated.executionResult().status());
+        assertEquals("bar_already_processed", repeated.executionResult().message());
+    }
+
     private TradingDefinition queuedDefinition() {
         return new TradingDefinition(
                 "bot-1",

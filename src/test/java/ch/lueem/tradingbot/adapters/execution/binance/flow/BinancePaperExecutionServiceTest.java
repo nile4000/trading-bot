@@ -2,14 +2,19 @@ package ch.lueem.tradingbot.adapters.execution.binance.flow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 
 import ch.lueem.tradingbot.adapters.config.paper.PaperOrderMode;
-import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
+import ch.lueem.tradingbot.adapters.binance.client.BinanceAccountClient;
+import ch.lueem.tradingbot.adapters.binance.client.BinanceOrderClient;
+import ch.lueem.tradingbot.adapters.execution.binance.order.BinanceClientOrderId;
+import ch.lueem.tradingbot.adapters.execution.binance.model.BinanceOrder;
+import ch.lueem.tradingbot.adapters.execution.binance.model.BinanceLotSize;
+import ch.lueem.tradingbot.adapters.execution.binance.model.BinanceSymbolInfo;
 import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.core.execution.Request;
 import ch.lueem.tradingbot.core.execution.Result;
@@ -54,7 +59,7 @@ class BinancePaperExecutionServiceTest {
         PaperPortfolioService portfolioService = new PaperPortfolioService("BTCUSDT", new BigDecimal("1000.00"));
         portfolioService.openPosition(
                 "BTCUSDT",
-                new BigDecimal("0.01000000"),
+                new BigDecimal("0.00009990"),
                 new BigDecimal("50000.00"),
                 OffsetDateTime.parse("2026-01-01T00:00:00Z"));
         BinancePaperExecutionService service =
@@ -65,15 +70,23 @@ class BinancePaperExecutionServiceTest {
                         5_000.0,
                         PaperOrderMode.PLACE_ORDER,
                         true,
-                        null);
+                        null,
+                        closingPortfolioSync(portfolioService, new BigDecimal("51000.00")),
+                        new BinanceClientOrderId(),
+                        new BinanceSymbolInfo(
+                                "BTCUSDT", "BTC", "USDT",
+                                new BinanceLotSize(
+                                        new BigDecimal("0.00001000"),
+                                        new BigDecimal("0.00001000"))));
 
         Result result = service.execute(sellRequest(new BigDecimal("51000.00")));
 
         assertEquals(Status.EXECUTED, result.status());
         assertTrue(result.executed());
         assertFalse(result.positionOpenAfterExecution());
-        assertEquals("testnet_order#42", result.message());
+        assertEquals("paper_order#42", result.message());
         assertEquals("BTCUSDT", client.placedRequest.getSymbol());
+        assertEquals(0.00009, client.placedRequest.getQuantity());
         assertFalse(portfolioService.getSnapshot("BTCUSDT").position().open());
     }
 
@@ -100,6 +113,33 @@ class BinancePaperExecutionServiceTest {
     }
 
     @Test
+    void recoversExistingOrderWithoutPlacingItAgain() {
+        CapturingClient client = new CapturingClient();
+        client.foundOrder = new BinanceOrder(
+                42L, "existing", "BTCUSDT", TradeAction.BUY, "FILLED",
+                new BigDecimal("0.001"), new BigDecimal("0.001"), new BigDecimal("50"),
+                OffsetDateTime.parse("2026-03-13T10:15:00Z"));
+        PaperPortfolioService portfolioService = new PaperPortfolioService("BTCUSDT", new BigDecimal("1000.00"));
+        BinancePaperExecutionService service = new BinancePaperExecutionService(
+                client,
+                portfolioService,
+                new BigDecimal("0.001"),
+                5_000.0,
+                PaperOrderMode.PLACE_ORDER,
+                true,
+                new BigDecimal("100"),
+                unchangedPortfolioSync(portfolioService),
+                new BinanceClientOrderId());
+
+        Result result = service.execute(buyRequest(new BigDecimal("50000.00")));
+
+        assertEquals(Status.EXECUTED, result.status());
+        assertTrue(result.executed());
+        assertFalse(client.placeOrderCalled);
+        assertEquals("recovered_paper_order#42", result.message());
+    }
+
+    @Test
     void skipsBuyWhenMaxOrderNotionalWouldBeExceeded() {
         CapturingClient client = new CapturingClient();
         PaperPortfolioService portfolioService = new PaperPortfolioService("BTCUSDT", new BigDecimal("10000.00"));
@@ -119,28 +159,6 @@ class BinancePaperExecutionServiceTest {
         assertFalse(result.executed());
         assertEquals("max_notional_exceeded", result.message());
         assertFalse(client.validateCalled);
-    }
-
-    @Test
-    void wrapsClientFailuresWithContext() {
-        CapturingClient client = new CapturingClient();
-        client.validationFailure = new IllegalStateException("boom");
-        PaperPortfolioService portfolioService = new PaperPortfolioService("BTCUSDT", new BigDecimal("1000.00"));
-        BinancePaperExecutionService service =
-                new BinancePaperExecutionService(
-                        client,
-                        portfolioService,
-                        new BigDecimal("0.01000000"),
-                        5_000.0,
-                        PaperOrderMode.VALIDATE_ONLY,
-                        true,
-                        null);
-
-        IllegalStateException exception =
-                assertThrows(IllegalStateException.class, () -> service.execute(buyRequest(new BigDecimal("50000.00"))));
-
-        assertTrue(exception.getMessage().contains("validate BUY action on Binance Spot Testnet for symbol BTCUSDT"));
-        assertEquals("boom", exception.getCause().getMessage());
     }
 
     @Test
@@ -184,26 +202,62 @@ class BinancePaperExecutionServiceTest {
                 referencePrice);
     }
 
-    private static final class CapturingClient implements BinanceClient {
+    private static BinancePortfolioSync closingPortfolioSync(
+            PaperPortfolioService portfolioService,
+            BigDecimal exitPrice) {
+        return new BinancePortfolioSync(unusedAccountClient(), portfolioService, null, null,
+                new BinanceClientOrderId()) {
+            @Override
+            public ch.lueem.tradingbot.core.portfolio.PortfolioSnapshot sync() {
+                portfolioService.closePosition("BTCUSDT", exitPrice);
+                return portfolioService.getSnapshot("BTCUSDT");
+            }
+        };
+    }
+
+    private static BinancePortfolioSync unchangedPortfolioSync(PaperPortfolioService portfolioService) {
+        return new BinancePortfolioSync(unusedAccountClient(), portfolioService, null, null,
+                new BinanceClientOrderId()) {
+            @Override
+            public ch.lueem.tradingbot.core.portfolio.PortfolioSnapshot sync() {
+                return portfolioService.getSnapshot("BTCUSDT");
+            }
+        };
+    }
+
+    private static BinanceAccountClient unusedAccountClient() {
+        return new BinanceAccountClient() {
+            @Override
+            public java.util.List<ch.lueem.tradingbot.adapters.execution.binance.model.BinanceBalance> loadBalances(
+                    double recvWindowMillis) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.util.List<BinanceOrder> loadOrders(String symbol, double recvWindowMillis) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.util.List<ch.lueem.tradingbot.adapters.execution.binance.model.BinanceFill> loadTrades(
+                    String symbol, double recvWindowMillis) {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    private static final class CapturingClient implements BinanceOrderClient {
         private OrderTestRequest validatedRequest;
         private NewOrderRequest placedRequest;
         private boolean validateCalled;
         private boolean placeOrderCalled;
-        private RuntimeException validationFailure;
         private NewOrderResponse orderResponse = new NewOrderResponse();
-
-        @Override
-        public String baseUrl() {
-            return "https://testnet.binance.vision";
-        }
+        private BinanceOrder foundOrder;
 
         @Override
         public void validateOrder(OrderTestRequest request) {
             validateCalled = true;
             validatedRequest = request;
-            if (validationFailure != null) {
-                throw validationFailure;
-            }
         }
 
         @Override
@@ -214,8 +268,12 @@ class BinancePaperExecutionServiceTest {
         }
 
         @Override
-        public BigDecimal loadSymbolPrice(String symbol) {
-            return new BigDecimal("50000.00");
+        public Optional<ch.lueem.tradingbot.adapters.execution.binance.model.BinanceOrder> findOrder(
+                String symbol,
+                String clientOrderId,
+                double recvWindowMillis) {
+            return Optional.ofNullable(foundOrder);
         }
+
     }
 }

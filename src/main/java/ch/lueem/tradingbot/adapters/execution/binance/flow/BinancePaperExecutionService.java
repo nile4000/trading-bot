@@ -3,8 +3,10 @@ package ch.lueem.tradingbot.adapters.execution.binance.flow;
 import java.math.BigDecimal;
 
 import ch.lueem.tradingbot.adapters.config.paper.PaperOrderMode;
-import ch.lueem.tradingbot.adapters.execution.binance.client.BinanceClient;
+import ch.lueem.tradingbot.adapters.binance.client.BinanceOrderClient;
 import ch.lueem.tradingbot.adapters.execution.binance.order.BinanceOrderRequestFactory;
+import ch.lueem.tradingbot.adapters.execution.binance.order.BinanceClientOrderId;
+import ch.lueem.tradingbot.adapters.execution.binance.model.BinanceSymbolInfo;
 import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
 import ch.lueem.tradingbot.core.execution.ExecutionService;
 import ch.lueem.tradingbot.core.execution.Request;
@@ -18,29 +20,66 @@ import ch.lueem.tradingbot.core.strategy.action.TradeAction;
  */
 public class BinancePaperExecutionService implements ExecutionService {
 
-    private final BinanceClient client;
+    private final BinanceOrderClient client;
     private final PaperOrderMode orderMode;
     private final BinanceOrderRequestFactory requestFactory;
     private final boolean placeOrdersEnabled;
     private final BigDecimal maxOrderNotional;
     private final PaperPortfolioService portfolioService;
+    private final double recvWindowMillis;
+    private final BinancePortfolioSync portfolioSync;
+    private final BinanceClientOrderId clientOrderId;
+    private final BinanceSymbolInfo symbolInfo;
 
     public BinancePaperExecutionService(
-            BinanceClient client,
+            BinanceOrderClient client,
             PaperPortfolioService portfolioService,
             BigDecimal orderQuantity,
             double recvWindowMillis,
             PaperOrderMode orderMode,
             boolean placeOrdersEnabled,
             BigDecimal maxOrderNotional) {
-        if (client == null || portfolioService == null || orderMode == null) {
-            throw new IllegalArgumentException("client, portfolioService, and orderMode must not be null.");
+        this(client, portfolioService, orderQuantity, recvWindowMillis, orderMode,
+                placeOrdersEnabled, maxOrderNotional, null, new BinanceClientOrderId(), null);
+    }
+
+    public BinancePaperExecutionService(
+            BinanceOrderClient client,
+            PaperPortfolioService portfolioService,
+            BigDecimal orderQuantity,
+            double recvWindowMillis,
+            PaperOrderMode orderMode,
+            boolean placeOrdersEnabled,
+            BigDecimal maxOrderNotional,
+            BinancePortfolioSync portfolioSync,
+            BinanceClientOrderId clientOrderId) {
+        this(client, portfolioService, orderQuantity, recvWindowMillis, orderMode,
+                placeOrdersEnabled, maxOrderNotional, portfolioSync, clientOrderId, null);
+    }
+
+    public BinancePaperExecutionService(
+            BinanceOrderClient client,
+            PaperPortfolioService portfolioService,
+            BigDecimal orderQuantity,
+            double recvWindowMillis,
+            PaperOrderMode orderMode,
+            boolean placeOrdersEnabled,
+            BigDecimal maxOrderNotional,
+            BinancePortfolioSync portfolioSync,
+            BinanceClientOrderId clientOrderId,
+            BinanceSymbolInfo symbolInfo) {
+        if (client == null || portfolioService == null || orderMode == null || clientOrderId == null) {
+            throw new IllegalArgumentException("client, portfolioService, orderMode, and clientOrderId must not be null.");
         }
         this.client = client;
         this.portfolioService = portfolioService;
         this.orderMode = orderMode;
         this.placeOrdersEnabled = placeOrdersEnabled;
         this.maxOrderNotional = maxOrderNotional;
+        this.recvWindowMillis = recvWindowMillis;
+        this.portfolioSync = portfolioSync;
+        this.clientOrderId = clientOrderId;
+        this.symbolInfo = symbolInfo;
         this.requestFactory = new BinanceOrderRequestFactory(orderQuantity, recvWindowMillis);
     }
 
@@ -63,7 +102,7 @@ public class BinancePaperExecutionService implements ExecutionService {
             };
         } catch (RuntimeException exception) {
             throw new IllegalStateException(
-                    "Failed to %s %s action on Binance Spot Testnet for symbol %s"
+                    "Failed to %s %s action on the configured Binance paper environment for symbol %s"
                             .formatted(orderMode == PaperOrderMode.PLACE_ORDER ? "place" : "validate",
                                     request.tradeAction(), request.symbol()),
                     exception);
@@ -76,11 +115,46 @@ public class BinancePaperExecutionService implements ExecutionService {
     }
 
     private Result placeOrder(Request request) {
-        var response = client.placeOrder(requestFactory.buildOrderRequest(request));
-        var detail = response.getOrderId() == null
-                ? "testnet_order"
-                : "testnet_order#" + response.getOrderId();
-        return applySuccessfulAction(request, Status.EXECUTED, detail);
+        if (portfolioSync == null) {
+            throw new IllegalStateException("Binance portfolio synchronization is required for PLACE_ORDER.");
+        }
+        String orderClientId = clientOrderId.create(request);
+        var existingOrder = client.findOrder(request.symbol(), orderClientId, recvWindowMillis);
+        if (existingOrder.isPresent()) {
+            var snapshot = portfolioSync.sync();
+            return new Result(Status.EXECUTED, existingOrder.get().executedQuantity().signum() > 0,
+                    snapshot.position().open(), "recovered_paper_order#" + existingOrder.get().orderId());
+        }
+
+        BigDecimal quantity = request.tradeAction() == TradeAction.SELL
+                ? sellableQuantity(request)
+                : requestFactory.orderQuantity();
+        try {
+            var response = client.placeOrder(
+                    requestFactory.buildOrderRequest(request, quantity, orderClientId));
+            var snapshot = portfolioSync.sync();
+            var detail = response.getOrderId() == null
+                    ? "paper_order"
+                    : "paper_order#" + response.getOrderId();
+            boolean filled = response.getExecutedQty() == null
+                    || new BigDecimal(response.getExecutedQty()).signum() > 0;
+            return new Result(Status.EXECUTED, filled, snapshot.position().open(), detail);
+        } catch (RuntimeException failure) {
+            var recovered = client.findOrder(request.symbol(), orderClientId, recvWindowMillis);
+            if (recovered.isEmpty()) {
+                throw failure;
+            }
+            var snapshot = portfolioSync.sync();
+            return new Result(Status.EXECUTED, recovered.get().executedQuantity().signum() > 0,
+                    snapshot.position().open(), "recovered_paper_order#" + recovered.get().orderId());
+        }
+    }
+
+    private BigDecimal sellableQuantity(Request request) {
+        BigDecimal positionQuantity = portfolioService.getSnapshot(request.symbol()).position().quantity();
+        return symbolInfo == null
+                ? positionQuantity
+                : symbolInfo.lotSize().sellableQuantity(positionQuantity);
     }
 
     private Result skipResultFor(Request request, PortfolioSnapshot snapshot) {

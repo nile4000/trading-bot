@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import ch.lueem.tradingbot.core.execution.Request;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import com.binance.connector.client.spot.rest.model.NewOrderRequest;
+import com.binance.connector.client.spot.rest.model.NewOrderRespType;
 import com.binance.connector.client.spot.rest.model.OrderTestRequest;
 import com.binance.connector.client.spot.rest.model.OrderType;
 import com.binance.connector.client.spot.rest.model.Side;
@@ -38,11 +39,23 @@ public class BinanceOrderRequestFactory {
     }
 
     public NewOrderRequest buildOrderRequest(Request request) {
+        return buildOrderRequest(request, orderQuantity, null);
+    }
+
+    public NewOrderRequest buildOrderRequest(
+            Request request,
+            BigDecimal quantity,
+            String clientOrderId) {
+        if (quantity == null || quantity.signum() <= 0) {
+            throw new IllegalArgumentException("quantity must be greater than zero.");
+        }
         return new NewOrderRequest()
                 .symbol(request.symbol())
                 .side(toSide(request.tradeAction()))
                 .type(OrderType.MARKET)
-                .quantity(orderQuantity.doubleValue())
+                .quantity(quantity.doubleValue())
+                .newClientOrderId(clientOrderId)
+                .newOrderRespType(NewOrderRespType.FULL)
                 .recvWindow(recvWindowMillis);
     }
 

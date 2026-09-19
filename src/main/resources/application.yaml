@@ -17,12 +17,12 @@ trading:
       initial-cash: 10000.0
   paper:
     bot:
-      bot-id: btcusdt-paper-testnet
+      bot-id: btcusdt-paper-demo
       bot-version: v1
       symbol: BTCUSDT
       timeframe: 1m
     execution:
-      exchange: BINANCE_SPOT_TESTNET
+      exchange: BINANCE_SPOT_DEMO
       order-mode: VALIDATE_ONLY
       tick-interval-millis: 10000
       initial-cash: 1000.0
@@ -35,10 +35,10 @@ trading:
         short-ema: 3
         long-ema: 7
     binance:
-      api-key: ${BINANCE_TESTNET_API_KEY:}
-      secret-key: ${BINANCE_TESTNET_SECRET_KEY:}
+      api-key: ${BINANCE_DEMO_API_KEY:}
+      secret-key: ${BINANCE_DEMO_SECRET_KEY:}
       recv-window-millis: 15000
-      base-url: https://testnet.binance.vision
+      base-url: https://demo-api.binance.com
 
 "%paper":
   trading:

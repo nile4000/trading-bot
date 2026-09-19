@@ -2,12 +2,12 @@ mode: PAPER
 
 paper:
   bot:
-    botId: btcusdt-paper-testnet
+    botId: btcusdt-paper-demo
     botVersion: v1
     symbol: BTCUSDT
     timeframe: 1m
   execution:
-    exchange: BINANCE_SPOT_TESTNET
+    exchange: BINANCE_SPOT_DEMO
     orderMode: PLACE_ORDER
     tickIntervalMillis: 10000
     initialCash: 1000.0
@@ -18,8 +18,8 @@ paper:
     - BUY
     - SELL
   binance:
-    apiKeyEnv: BINANCE_TESTNET_API_KEY
-    secretKeyEnv: BINANCE_TESTNET_SECRET_KEY
+    apiKeyEnv: BINANCE_DEMO_API_KEY
+    secretKeyEnv: BINANCE_DEMO_SECRET_KEY
     recvWindowMillis: 15000
 
 reporting:

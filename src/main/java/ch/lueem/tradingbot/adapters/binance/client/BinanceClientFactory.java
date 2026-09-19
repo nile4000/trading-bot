@@ -1,4 +1,4 @@
-package ch.lueem.tradingbot.adapters.execution.binance.client;
+package ch.lueem.tradingbot.adapters.binance.client;
 
 import com.binance.connector.client.common.configuration.ClientConfiguration;
 import com.binance.connector.client.common.configuration.SignatureConfiguration;
@@ -18,7 +18,7 @@ public class BinanceClientFactory {
     }
 
     public BinanceClient create(String apiKey, String secretKey) {
-        return new DefaultBinanceClient(createClientConfiguration(apiKey, secretKey));
+        return new BinanceSpotRestClient(createClientConfiguration(apiKey, secretKey));
     }
 
     ClientConfiguration createClientConfiguration(String apiKey, String secretKey) {

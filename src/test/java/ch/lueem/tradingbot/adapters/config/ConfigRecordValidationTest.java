@@ -28,7 +28,7 @@ class ConfigRecordValidationTest {
         var exception = assertThrows(
                 IllegalStateException.class,
                 () -> new PaperExecutionConfig(
-                        PaperExchange.BINANCE_SPOT_TESTNET,
+                        PaperExchange.BINANCE_SPOT_DEMO,
                         PaperOrderMode.PLACE_ORDER,
                         1_000L,
                         10_000.0,

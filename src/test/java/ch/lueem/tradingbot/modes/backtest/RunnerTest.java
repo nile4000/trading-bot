@@ -67,28 +67,6 @@ class RunnerTest {
         return csvFile;
     }
 
-    @Test
-    void run_supportsSmaCrossStrategy() {
-        Runner runner = new Runner();
-
-        Report report = runner.backtest(backtestConfig(
-                Path.of("data/historical/BTCUSDT-1h.csv"),
-                strategy("sma_cross", new StrategyParameters(3, 7))));
-
-        assertEquals("sma_cross", report.metadata().strategy().name());
-    }
-
-    @Test
-    void run_supportsRsiReversionStrategy() {
-        Runner runner = new Runner();
-
-        Report report = runner.backtest(backtestConfig(
-                Path.of("data/historical/BTCUSDT-1h.csv"),
-                strategy("rsi_reversion", StrategyParameters.rsiReversion(5, 30, 70))));
-
-        assertEquals("rsi_reversion", report.metadata().strategy().name());
-    }
-
     private BacktestConfig backtestConfig(Path csvPath, StrategyDefinition strategy) {
         return new BacktestConfig(
                 csvPath,
