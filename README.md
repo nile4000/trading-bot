@@ -1,5 +1,14 @@
 # trading-bot
 
+![last commit](https://img.shields.io/github/last-commit/nile4000/trading-bot)
+![Modus](https://img.shields.io/badge/Modus-Backtest%20%2B%20Paper-informational)
+
+![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)
+![Quarkus](https://img.shields.io/badge/Quarkus-Picocli-4695EB?logo=quarkus&logoColor=white)
+![Maven](https://img.shields.io/badge/Maven-3.9+-C71A36?logo=apachemaven&logoColor=white)
+![ta4j](https://img.shields.io/badge/ta4j-Indikatoren-2F6DB5)
+![Binance](https://img.shields.io/badge/Binance-Spot%20Demo-F0B90B?logo=binance&logoColor=black)
+
 Java-21-Trading-Bot auf Quarkus mit zwei Modi:
 
 - `BACKTEST` simuliert eine Strategie mit historischen CSV-Daten und erzeugt einen JSON-Report.
