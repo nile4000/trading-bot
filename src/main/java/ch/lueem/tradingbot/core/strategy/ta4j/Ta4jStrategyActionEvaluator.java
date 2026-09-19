@@ -4,7 +4,7 @@ import ch.lueem.tradingbot.core.strategy.action.ActionContext;
 import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import org.ta4j.core.BarSeries;
-import org.ta4j.core.Rule;
+import org.ta4j.core.Strategy;
 
 /**
  * Evaluates trade actions from ta4j rules for the current bar index.
@@ -12,15 +12,11 @@ import org.ta4j.core.Rule;
 public class Ta4jStrategyActionEvaluator implements StrategyActionEvaluator {
 
     private final BarSeries series;
-    private final Rule entryRule;
-    private final Rule exitRule;
-    private final int warmupBars;
+    private final Strategy strategy;
 
-    public Ta4jStrategyActionEvaluator(BarSeries series, Rule entryRule, Rule exitRule, int warmupBars) {
+    public Ta4jStrategyActionEvaluator(BarSeries series, Strategy strategy) {
         this.series = series;
-        this.entryRule = entryRule;
-        this.exitRule = exitRule;
-        this.warmupBars = warmupBars;
+        this.strategy = strategy;
     }
 
     @Override
@@ -29,16 +25,15 @@ public class Ta4jStrategyActionEvaluator implements StrategyActionEvaluator {
             throw new IllegalArgumentException("context must not be null.");
         }
 
-        BarSeries effectiveSeries = context.barSeries() != null ? context.barSeries() : series;
         int index = context.barIndex();
-        if (effectiveSeries == null || index < 0 || index >= effectiveSeries.getBarCount() || index < warmupBars) {
+        if (series == null || index < 0 || index >= series.getBarCount()) {
             return TradeAction.HOLD;
         }
 
-        if (!context.openPosition() && entryRule.isSatisfied(index)) {
+        if (!context.openPosition() && strategy.shouldEnter(index)) {
             return TradeAction.BUY;
         }
-        if (context.openPosition() && exitRule.isSatisfied(index)) {
+        if (context.openPosition() && strategy.shouldExit(index)) {
             return TradeAction.SELL;
         }
         return TradeAction.HOLD;

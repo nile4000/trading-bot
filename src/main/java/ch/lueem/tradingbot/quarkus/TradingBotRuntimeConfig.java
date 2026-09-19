@@ -10,6 +10,8 @@ import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
 
 /**
@@ -45,8 +47,36 @@ public interface TradingBotRuntimeConfig {
 
         @NotBlank
         String timeframe();
+
+        @DecimalMin("0.0")
+        @DecimalMax(value = "1.0", inclusive = false)
+        BigDecimal executionFeeRate();
+
+        @DecimalMin("0.0")
+        @DecimalMax(value = "1.0", inclusive = false)
+        BigDecimal slippageRate();
+
+        @Positive
+        BigDecimal orderQuantity();
+
         Strategy strategy();
+        Filters filters();
         Portfolio portfolio();
+    }
+
+    interface Filters {
+        Adx adx();
+    }
+
+    interface Adx {
+        boolean enabled();
+
+        @Positive
+        int period();
+
+        @jakarta.validation.constraints.Min(0)
+        @jakarta.validation.constraints.Max(100)
+        int minimumStrength();
     }
 
     interface Portfolio {

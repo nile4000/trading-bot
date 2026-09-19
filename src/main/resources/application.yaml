@@ -8,11 +8,19 @@ trading:
     csv-path: data/historical/BTCUSDT-1h.csv
     symbol: BTCUSDT
     timeframe: 1h
+    order-quantity: 0.0001
+    execution-fee-rate: 0.001
+    slippage-rate: 0.0005
     strategy:
       name: ema_cross
       parameters:
         short-ema: 3
         long-ema: 7
+    filters:
+      adx:
+        enabled: false
+        period: 14
+        minimum-strength: 20
     portfolio:
       initial-cash: 10000.0
   paper:
@@ -68,3 +76,12 @@ trading:
     backtest:
       csv-path: data/historical/BTCUSDT-1h.csv
       timeframe: 1h
+
+"%backtest-1h-adx":
+  trading:
+    backtest:
+      csv-path: data/historical/BTCUSDT-1h.csv
+      timeframe: 1h
+      filters:
+        adx:
+          enabled: true

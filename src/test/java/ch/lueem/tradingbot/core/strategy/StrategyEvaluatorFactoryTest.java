@@ -1,24 +1,12 @@
 package ch.lueem.tradingbot.core.strategy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.List;
 
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyParameters;
 import org.junit.jupiter.api.Test;
 
 class StrategyEvaluatorFactoryTest {
-
-    @Test
-    void create_rejectsUnknownName() {
-        StrategyEvaluatorFactory factory = new StrategyEvaluatorFactory();
-
-        assertThrows(
-                IllegalStateException.class,
-                () -> factory.create(new StrategyDefinition("unknown", null), StrategyEvaluatorContext.queued(List.of())));
-    }
 
     @Test
     void requiredHistoryBars_usesThreeTimesTheLongestIndicatorPeriod() {

@@ -26,9 +26,7 @@ class CsvMarketSnapshotProviderTest {
         var second = provider.load(definition);
 
         assertEquals("0.12345678", first.lastPrice().toPlainString());
-        assertEquals("0.12345678", first.closePriceHistory().getFirst().toPlainString());
         assertEquals("123456.78901234", second.lastPrice().toPlainString());
-        assertEquals("123456.78901234", second.closePriceHistory().getLast().toPlainString());
     }
 
     private TradingDefinition backtestDefinition() {

@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
+import ch.lueem.tradingbot.adapters.config.backtest.AdxFilterConfig;
 import ch.lueem.tradingbot.adapters.config.backtest.PortfolioConfig;
 import ch.lueem.tradingbot.core.execution.Result;
 import ch.lueem.tradingbot.core.execution.Status;
@@ -29,7 +30,11 @@ class ReportGeneratorPrecisionTest {
                 "BTCUSDT",
                 "1h",
                 new StrategyDefinition("ema_cross", new StrategyParameters(3, 7)),
-                new PortfolioConfig(10000.0));
+                new PortfolioConfig(10000.0),
+                new BigDecimal("0.0001"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                new AdxFilterConfig(false, 1, 0));
 
         List<RuntimeCycleResult> cycleResults = List.of(
                 cycle(
@@ -64,9 +69,14 @@ class ReportGeneratorPrecisionTest {
 
         assertEquals("-11.1111", report.buyAndHoldReturnPercent().toPlainString());
         assertEquals("20.0000", report.maxDrawdownPercent().toPlainString());
-        assertEquals("-1111.0000", report.averageLosingTrade().toPlainString());
+        assertEquals("-1111.1111", report.averageLosingTrade().toPlainString());
         assertEquals("-11.1111", report.totalReturnPercent().toPlainString());
         assertEquals("0.0833", report.timeInMarketDays().toPlainString());
+        assertEquals("-1111.1111", report.grossProfitLoss().toPlainString());
+        assertEquals("-1111.1111", report.netProfitLoss().toPlainString());
+        assertEquals("0.0000", report.fees().toPlainString());
+        assertEquals("0.0000", report.slippage().toPlainString());
+        assertEquals("18888.8889", report.turnover().toPlainString());
     }
 
     private RuntimeCycleResult cycle(
@@ -84,7 +94,7 @@ class ReportGeneratorPrecisionTest {
                         "1h",
                         OffsetDateTime.parse(observedAt),
                         new BigDecimal(lastPrice),
-                        List.of(new BigDecimal(lastPrice)),
+                        new BigDecimal(lastPrice),
                         0),
                 new PortfolioSnapshot(
                         "BTCUSDT",

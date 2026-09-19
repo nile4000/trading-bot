@@ -53,14 +53,8 @@ public class TradingRuntime {
         lastProcessedMarketTime = snapshot.observedAt();
 
         TradeAction action = evaluator.evaluate(new ActionContext(
-                definition.symbol(),
-                definition.timeframe(),
-                snapshot.observedAt(),
-                snapshot.lastPrice(),
                 portfolioSnapshotBeforeExecution.position().open(),
-                snapshot.closePriceHistory(),
-                snapshot.barIndex(),
-                null));
+                snapshot.barIndex()));
 
         Result executionResult = executionService.execute(new Request(
                 definition.runtimeId(),
@@ -68,7 +62,7 @@ public class TradingRuntime {
                 definition.timeframe(),
                 action,
                 snapshot.observedAt(),
-                snapshot.lastPrice()));
+                snapshot.executionPrice()));
         PortfolioSnapshot portfolioSnapshotAfterExecution = portfolioService.getSnapshot(definition.symbol());
 
         return new RuntimeCycleResult(

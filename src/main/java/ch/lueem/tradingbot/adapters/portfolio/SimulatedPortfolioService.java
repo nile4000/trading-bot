@@ -36,23 +36,36 @@ public class SimulatedPortfolioService implements PortfolioService {
         snapshots.put(symbol, new PortfolioSnapshot(symbol, scaleMoney(availableCash), PositionSnapshot.flat()));
     }
 
-    public void openPosition(String symbol, BigDecimal quantity, BigDecimal entryPrice, OffsetDateTime openedAt) {
+    public void openPosition(
+            String symbol,
+            BigDecimal quantity,
+            BigDecimal entryPrice,
+            BigDecimal transactionFee,
+            OffsetDateTime openedAt) {
         validateSymbol(symbol);
         validateAmount(quantity, "quantity");
         validateAmount(entryPrice, "entryPrice");
+        validateNonNegativeAmount(transactionFee, "transactionFee");
         if (openedAt == null) {
             throw new IllegalArgumentException("openedAt must not be null.");
         }
 
+        PortfolioSnapshot currentSnapshot = getSnapshot(symbol);
+        BigDecimal totalCost = quantity.multiply(entryPrice).add(transactionFee);
+        if (currentSnapshot.availableCash().compareTo(totalCost) < 0) {
+            throw new IllegalStateException("Cannot open simulated position because available cash is insufficient for " + symbol);
+        }
+
         snapshots.put(symbol, new PortfolioSnapshot(
                 symbol,
-                BigDecimal.ZERO.setScale(MONEY_SCALE),
+                scaleMoney(currentSnapshot.availableCash().subtract(totalCost)),
                 new PositionSnapshot(true, scaleQuantity(quantity), scaleMoney(entryPrice), openedAt)));
     }
 
-    public void closePosition(String symbol, BigDecimal exitPrice) {
+    public void closePosition(String symbol, BigDecimal exitPrice, BigDecimal transactionFee) {
         validateSymbol(symbol);
         validateAmount(exitPrice, "exitPrice");
+        validateNonNegativeAmount(transactionFee, "transactionFee");
 
         PortfolioSnapshot currentSnapshot = getSnapshot(symbol);
         PositionSnapshot position = currentSnapshot.position();
@@ -60,7 +73,8 @@ public class SimulatedPortfolioService implements PortfolioService {
             throw new IllegalStateException("Cannot close position because no open position exists for " + symbol);
         }
 
-        BigDecimal cashAfterClose = scaleMoney(position.quantity().multiply(exitPrice));
+        BigDecimal netProceeds = position.quantity().multiply(exitPrice).subtract(transactionFee);
+        BigDecimal cashAfterClose = scaleMoney(currentSnapshot.availableCash().add(netProceeds));
         snapshots.put(symbol, new PortfolioSnapshot(symbol, cashAfterClose, PositionSnapshot.flat()));
     }
 
@@ -81,6 +95,12 @@ public class SimulatedPortfolioService implements PortfolioService {
     private void validateAmount(BigDecimal value, String fieldName) {
         if (value == null || value.signum() <= 0) {
             throw new IllegalArgumentException(fieldName + " must be greater than zero.");
+        }
+    }
+
+    private void validateNonNegativeAmount(BigDecimal value, String fieldName) {
+        if (value == null || value.signum() < 0) {
+            throw new IllegalArgumentException(fieldName + " must not be negative.");
         }
     }
 }

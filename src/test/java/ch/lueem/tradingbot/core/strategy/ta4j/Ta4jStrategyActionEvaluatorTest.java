@@ -2,16 +2,15 @@ package ch.lueem.tradingbot.core.strategy.ta4j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.List;
 
 import ch.lueem.tradingbot.core.strategy.action.ActionContext;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import org.junit.jupiter.api.Test;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
+import org.ta4j.core.BaseStrategy;
 import org.ta4j.core.Rule;
 
 class Ta4jStrategyActionEvaluatorTest {
@@ -19,13 +18,9 @@ class Ta4jStrategyActionEvaluatorTest {
     @Test
     void evaluate_returnsBuyWhenShortEmaCrossesAboveLongEmaWithoutOpenPosition() {
         BarSeries series = series("10", "10", "10", "9", "12");
-        Ta4jStrategyActionEvaluator evaluator = new Ta4jStrategyActionEvaluator(
-                series,
-                satisfiedOnlyAt(4),
-                neverSatisfied(),
-                3);
+        Ta4jStrategyActionEvaluator evaluator = evaluator(series, satisfiedOnlyAt(4), neverSatisfied(), 3);
 
-        TradeAction action = evaluator.evaluate(context(series, 4, false));
+        TradeAction action = evaluator.evaluate(context(4, false));
 
         assertEquals(TradeAction.BUY, action);
     }
@@ -33,13 +28,9 @@ class Ta4jStrategyActionEvaluatorTest {
     @Test
     void evaluate_returnsSellWhenShortEmaCrossesBelowLongEmaWithOpenPosition() {
         BarSeries series = series("10", "10", "10", "12", "9");
-        Ta4jStrategyActionEvaluator evaluator = new Ta4jStrategyActionEvaluator(
-                series,
-                neverSatisfied(),
-                satisfiedOnlyAt(4),
-                3);
+        Ta4jStrategyActionEvaluator evaluator = evaluator(series, neverSatisfied(), satisfiedOnlyAt(4), 3);
 
-        TradeAction action = evaluator.evaluate(context(series, 4, true));
+        TradeAction action = evaluator.evaluate(context(4, true));
 
         assertEquals(TradeAction.SELL, action);
     }
@@ -47,13 +38,9 @@ class Ta4jStrategyActionEvaluatorTest {
     @Test
     void evaluate_returnsHoldWhenNoCrossIsPresent() {
         BarSeries series = series("10", "11", "12", "13", "14");
-        Ta4jStrategyActionEvaluator evaluator = new Ta4jStrategyActionEvaluator(
-                series,
-                neverSatisfied(),
-                neverSatisfied(),
-                3);
+        Ta4jStrategyActionEvaluator evaluator = evaluator(series, neverSatisfied(), neverSatisfied(), 3);
 
-        TradeAction action = evaluator.evaluate(context(series, 4, false));
+        TradeAction action = evaluator.evaluate(context(4, false));
 
         assertEquals(TradeAction.HOLD, action);
     }
@@ -61,28 +48,15 @@ class Ta4jStrategyActionEvaluatorTest {
     @Test
     void evaluate_returnsHoldWhileSeriesIsStillWarmingUp() {
         BarSeries series = series("10", "10", "10", "9", "12");
-        Ta4jStrategyActionEvaluator evaluator = new Ta4jStrategyActionEvaluator(
-                series,
-                satisfiedOnlyAt(2),
-                neverSatisfied(),
-                3);
+        Ta4jStrategyActionEvaluator evaluator = evaluator(series, satisfiedOnlyAt(2), neverSatisfied(), 3);
 
-        TradeAction action = evaluator.evaluate(context(series, 2, false));
+        TradeAction action = evaluator.evaluate(context(2, false));
 
         assertEquals(TradeAction.HOLD, action);
     }
 
-    private ActionContext context(BarSeries series, int barIndex, boolean openPosition) {
-        BigDecimal lastPrice = BigDecimal.valueOf(series.getBar(barIndex).getClosePrice().doubleValue());
-        return new ActionContext(
-                "BTCUSDT",
-                "1h",
-                OffsetDateTime.parse("2026-01-01T00:00:00Z").plusHours(barIndex),
-                lastPrice,
-                openPosition,
-                List.of(lastPrice),
-                barIndex,
-                series);
+    private ActionContext context(int barIndex, boolean openPosition) {
+        return new ActionContext(openPosition, barIndex);
     }
 
     private Rule satisfiedOnlyAt(int targetIndex) {
@@ -91,6 +65,16 @@ class Ta4jStrategyActionEvaluatorTest {
 
     private Rule neverSatisfied() {
         return (index, tradingRecord) -> false;
+    }
+
+    private Ta4jStrategyActionEvaluator evaluator(
+            BarSeries series,
+            Rule entryRule,
+            Rule exitRule,
+            int unstableBars) {
+        return new Ta4jStrategyActionEvaluator(
+                series,
+                new BaseStrategy(entryRule, exitRule, unstableBars));
     }
 
     private BarSeries series(String... closePrices) {

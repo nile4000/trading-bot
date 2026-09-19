@@ -1,6 +1,8 @@
 package ch.lueem.tradingbot.adapters.reporting;
 
 import java.io.PrintStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -22,7 +24,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 @Singleton
 public class BacktestReportJsonPrinter {
 
-    private static final String REPORT_VERSION = "v5";
+    private static final String REPORT_VERSION = "v6";
     private final ObjectMapper prettyObjectMapper;
     private final ObjectMapper compactObjectMapper;
 
@@ -43,7 +45,10 @@ public class BacktestReportJsonPrinter {
         out.println(toJson(toDocument(config, report, reporting), reporting));
     }
 
-    private List<String> buildNotes(Report report, ReportingConfig reporting) {
+    private List<String> buildNotes(
+            Report report,
+            ReportingConfig reporting,
+            BacktestConfig config) {
         List<String> notes = new ArrayList<>();
         if (!reporting.includeNotes()) {
             return notes;
@@ -54,7 +59,28 @@ public class BacktestReportJsonPrinter {
         if (report.hasOpenPosition()) {
             notes.add("An open position remains at the end of the backtest and is valued mark-to-market.");
         }
-        notes.add("Fees and slippage are not modeled in this report.");
+        String feePercent = config.executionFeeRate()
+                .multiply(java.math.BigDecimal.valueOf(100))
+                .stripTrailingZeros()
+                .toPlainString();
+        String slippagePercent = config.slippageRate()
+                .multiply(java.math.BigDecimal.valueOf(100))
+                .stripTrailingZeros()
+                .toPlainString();
+        String roundTripCostPercent = config.executionFeeRate()
+                .add(config.slippageRate())
+                .multiply(java.math.BigDecimal.valueOf(200))
+                .stripTrailingZeros()
+                .toPlainString();
+        notes.add("Each side models a " + feePercent + "% trading fee and " + slippagePercent
+                + "% slippage; the configured roundtrip cost is approximately "
+                + roundTripCostPercent + "%.");
+        notes.add("Signals are evaluated at bar close and executed at the next bar open using a fixed quantity of "
+                + config.orderQuantity().stripTrailingZeros().toPlainString() + ".");
+        if (config.adxFilter().enabled()) {
+            notes.add("ADX entry filter enabled with period " + config.adxFilter().period()
+                    + " and minimum strength " + config.adxFilter().minimumStrength() + ".");
+        }
         return notes;
     }
 
@@ -76,7 +102,7 @@ public class BacktestReportJsonPrinter {
                 buildMetadata(config, report),
                 buildStrategy(report),
                 buildPerformance(report),
-                buildNotes(report, reporting));
+                buildNotes(report, reporting, config));
     }
 
     private ObjectMapper selectObjectMapper(boolean prettyPrint) {
@@ -93,7 +119,11 @@ public class BacktestReportJsonPrinter {
                 report.metadata().dataStart(),
                 report.metadata().dataEnd(),
                 report.metadata().executionModel(),
-                report.metadata().positionSizingModel());
+                report.metadata().positionSizingModel(),
+                scale(config.orderQuantity()),
+                percent(config.executionFeeRate()),
+                percent(config.slippageRate()),
+                percent(config.executionFeeRate().add(config.slippageRate()).multiply(BigDecimal.TWO)));
     }
 
     private BacktestReportDocument.Strategy buildStrategy(Report report) {
@@ -107,6 +137,11 @@ public class BacktestReportJsonPrinter {
                 report.closedTradeCount(),
                 report.initialCash(),
                 report.finalValue(),
+                report.grossProfitLoss(),
+                report.netProfitLoss(),
+                report.fees(),
+                report.slippage(),
+                report.turnover(),
                 report.totalReturnPercent(),
                 report.buyAndHoldReturnPercent(),
                 report.maxDrawdownPercent(),
@@ -116,5 +151,13 @@ public class BacktestReportJsonPrinter {
                 report.averageLosingTrade(),
                 report.timeInMarketDays(),
                 report.exposurePercent());
+    }
+
+    private BigDecimal percent(BigDecimal rate) {
+        return scale(rate.multiply(BigDecimal.valueOf(100)));
+    }
+
+    private BigDecimal scale(BigDecimal value) {
+        return value.setScale(4, RoundingMode.HALF_UP);
     }
 }

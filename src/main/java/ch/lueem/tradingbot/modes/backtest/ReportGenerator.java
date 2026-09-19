@@ -22,8 +22,8 @@ import jakarta.inject.Singleton;
 @Singleton
 public class ReportGenerator {
 
-    private static final String EXECUTION_MODEL = "action_bar_close";
-    private static final String POSITION_SIZING_MODEL = "all_in_spot";
+    private static final String EXECUTION_MODEL = "signal_bar_close_next_bar_open";
+    private static final String POSITION_SIZING_MODEL = "fixed_quantity_spot";
     private static final int MONEY_SCALE = 4;
     private static final int DIVISION_SCALE = MONEY_SCALE + 4;
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
@@ -31,15 +31,18 @@ public class ReportGenerator {
     public Report assemble(BacktestConfig config, List<RuntimeCycleResult> cycleResults) {
         validateInputs(config, cycleResults);
 
-        var positions = buildPositions(cycleResults);
+        var positions = buildPositions(config, cycleResults);
         var lastCycle = cycleResults.getLast();
         var tradeStats = calculateTradeStats(positions);
+        var financials = calculateFinancials(positions);
         var exposure = calculateExposure(config, cycleResults);
         var performance = calculatePerformance(config, cycleResults, lastCycle);
         var metadata = buildMetadata(config, cycleResults, lastCycle);
 
         return new Report(
                 metadata, tradeStats.closedTradeCount(), performance.initialCash(), performance.finalValue(),
+                financials.grossProfitLoss(), financials.netProfitLoss(), financials.fees(),
+                financials.slippage(), financials.turnover(),
                 performance.totalReturnPercent(), performance.buyAndHoldReturnPercent(),
                 performance.maxDrawdownPercent(), tradeStats.profitFactor(), tradeStats.winRatePercent(),
                 tradeStats.averageWinningTrade(), tradeStats.averageLosingTrade(),
@@ -56,25 +59,28 @@ public class ReportGenerator {
         }
     }
 
-    private List<Position> buildPositions(List<RuntimeCycleResult> cycleResults) {
+    private List<Position> buildPositions(BacktestConfig config, List<RuntimeCycleResult> cycleResults) {
         var positions = new ArrayList<Position>();
         PositionAccumulator openPosition = null;
         int positionNumber = 1;
 
         for (RuntimeCycleResult cycleResult : cycleResults) {
-            if (!cycleResult.executionResult().executed())
-                continue;
-
-            if (cycleResult.action() == TradeAction.BUY) {
-                openPosition = new PositionAccumulator(
-                        cycleResult.marketSnapshot().observedAt().toString(),
-                        cycleResult.marketSnapshot().lastPrice(), 
-                        cycleResult.portfolioSnapshot().position().quantity());
+            if (!cycleResult.executionResult().executed()) {
                 continue;
             }
 
-            if (cycleResult.action() == TradeAction.SELL && openPosition != null) {
-                positions.add(buildClosedPositionReport(positionNumber++, openPosition, cycleResult));
+            if (cycleResult.action() == TradeAction.BUY) {
+                var quantity = cycleResult.portfolioSnapshot().position().quantity();
+                var fillPrice = cycleResult.portfolioSnapshot().position().entryPrice();
+                openPosition = new PositionAccumulator(
+                        cycleResult.marketSnapshot().observedAt()
+                                .minus(Timeframes.parse(config.timeframe())).toString(),
+                        cycleResult.marketSnapshot().executionPrice(),
+                        fillPrice,
+                        quantity,
+                        transactionFee(config, fillPrice, quantity));
+            } else if (cycleResult.action() == TradeAction.SELL && openPosition != null) {
+                positions.add(buildClosedPositionReport(positionNumber++, config, openPosition, cycleResult));
                 openPosition = null;
             }
         }
@@ -84,6 +90,15 @@ public class ReportGenerator {
         }
 
         return List.copyOf(positions);
+    }
+
+    private Financials calculateFinancials(List<Position> positions) {
+        return new Financials(
+                sum(positions, Position::grossProfitLoss),
+                sum(positions, Position::profitLoss),
+                sum(positions, Position::fees),
+                sum(positions, Position::slippage),
+                sum(positions, Position::turnover));
     }
 
     private TradeStats calculateTradeStats(List<Position> positions) {
@@ -139,27 +154,42 @@ public class ReportGenerator {
                 EXECUTION_MODEL, POSITION_SIZING_MODEL, config.strategy());
     }
 
-    private Position buildClosedPositionReport(int positionNumber, PositionAccumulator openPosition,
+    private Position buildClosedPositionReport(int positionNumber, BacktestConfig config, PositionAccumulator openPosition,
             RuntimeCycleResult cycleResult) {
-        var exitPrice = scale(cycleResult.marketSnapshot().lastPrice());
-        var pnl = calculateProfitLoss(openPosition, exitPrice);
+        var exitReferencePrice = cycleResult.marketSnapshot().executionPrice();
+        var exitFillPrice = exitReferencePrice.multiply(BigDecimal.ONE.subtract(config.slippageRate()));
+        var exitFee = transactionFee(config, exitFillPrice, openPosition.quantity);
+        var grossPnl = openPosition.quantity.multiply(exitReferencePrice.subtract(openPosition.entryReferencePrice));
+        var slippage = openPosition.quantity.multiply(
+                openPosition.entryFillPrice.subtract(openPosition.entryReferencePrice)
+                        .add(exitReferencePrice.subtract(exitFillPrice)));
+        var fees = openPosition.entryFee.add(exitFee);
+        var pnl = scale(grossPnl.subtract(fees).subtract(slippage));
+        var turnover = openPosition.quantity.multiply(openPosition.entryFillPrice.add(exitFillPrice));
         var pnlPct = calculateProfitLossPercent(openPosition, pnl);
 
         return new Position(
-                positionNumber, "CLOSED", openPosition.entryTime, scale(openPosition.entryPrice),
-                cycleResult.marketSnapshot().observedAt().toString(), exitPrice,
-                scale(openPosition.quantity), pnl, pnlPct);
+                positionNumber, "CLOSED", openPosition.entryTime, scale(openPosition.entryFillPrice),
+                cycleResult.marketSnapshot().observedAt()
+                        .minus(Timeframes.parse(config.timeframe())).toString(), scale(exitFillPrice),
+                scale(openPosition.quantity), pnl, pnlPct, scale(grossPnl), scale(fees),
+                scale(slippage), scale(turnover));
     }
 
     private Position buildOpenPositionReport(int positionNumber, PositionAccumulator openPosition,
             RuntimeCycleResult lastCycle) {
         var lastPrice = scale(lastCycle.marketSnapshot().lastPrice());
-        var pnl = calculateProfitLoss(openPosition, lastPrice);
+        var grossPnl = openPosition.quantity.multiply(lastPrice.subtract(openPosition.entryReferencePrice));
+        var slippage = openPosition.quantity.multiply(
+                openPosition.entryFillPrice.subtract(openPosition.entryReferencePrice));
+        var pnl = scale(grossPnl.subtract(openPosition.entryFee).subtract(slippage));
         var pnlPct = calculateProfitLossPercent(openPosition, pnl);
+        var turnover = openPosition.quantity.multiply(openPosition.entryFillPrice);
 
         return new Position(
-                positionNumber, "OPEN", openPosition.entryTime, scale(openPosition.entryPrice),
-                null, null, scale(openPosition.quantity), pnl, pnlPct);
+                positionNumber, "OPEN", openPosition.entryTime, scale(openPosition.entryFillPrice),
+                null, null, scale(openPosition.quantity), pnl, pnlPct, scale(grossPnl),
+                scale(openPosition.entryFee), scale(slippage), scale(turnover));
     }
 
     private BigDecimal calculateAverage(List<Position> trades) {
@@ -264,21 +294,23 @@ public class ReportGenerator {
                 .divide(BigDecimal.valueOf(closedTradeCount), MONEY_SCALE, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal calculateProfitLoss(PositionAccumulator openPosition, BigDecimal currentPrice) {
-        var positionValueAtEntry = openPosition.quantity.multiply(openPosition.entryPrice);
-        var currentPositionValue = openPosition.quantity.multiply(currentPrice);
-        return scale(currentPositionValue.subtract(positionValueAtEntry));
-    }
-
     private BigDecimal calculateProfitLossPercent(PositionAccumulator openPosition, BigDecimal pnl) {
-        var positionValueAtEntry = openPosition.quantity.multiply(openPosition.entryPrice);
-        if (positionValueAtEntry.signum() == 0) {
+        var entryCost = openPosition.quantity.multiply(openPosition.entryFillPrice).add(openPosition.entryFee);
+        if (entryCost.signum() == 0) {
             return scale(BigDecimal.ZERO);
         }
 
         return pnl.multiply(HUNDRED)
-                .divide(positionValueAtEntry, DIVISION_SCALE, RoundingMode.HALF_UP)
+                .divide(entryCost, DIVISION_SCALE, RoundingMode.HALF_UP)
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal transactionFee(BacktestConfig config, BigDecimal fillPrice, BigDecimal quantity) {
+        return fillPrice.multiply(quantity).multiply(config.executionFeeRate());
+    }
+
+    private BigDecimal sum(List<Position> positions, java.util.function.Function<Position, BigDecimal> value) {
+        return scale(positions.stream().map(value).reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 
     private BigDecimal calculateEquity(RuntimeCycleResult cycleResult) {
@@ -297,8 +329,10 @@ public class ReportGenerator {
 
     private record PositionAccumulator(
             String entryTime,
-            BigDecimal entryPrice,
-            BigDecimal quantity) {
+            BigDecimal entryReferencePrice,
+            BigDecimal entryFillPrice,
+            BigDecimal quantity,
+            BigDecimal entryFee) {
     }
 
     private record TradeStats(
@@ -320,5 +354,13 @@ public class ReportGenerator {
             BigDecimal totalReturnPercent,
             BigDecimal buyAndHoldReturnPercent,
             BigDecimal maxDrawdownPercent) {
+    }
+
+    private record Financials(
+            BigDecimal grossProfitLoss,
+            BigDecimal netProfitLoss,
+            BigDecimal fees,
+            BigDecimal slippage,
+            BigDecimal turnover) {
     }
 }

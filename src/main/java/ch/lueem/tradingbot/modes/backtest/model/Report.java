@@ -11,6 +11,11 @@ public record Report(
         int closedTradeCount,
         BigDecimal initialCash,
         BigDecimal finalValue,
+        BigDecimal grossProfitLoss,
+        BigDecimal netProfitLoss,
+        BigDecimal fees,
+        BigDecimal slippage,
+        BigDecimal turnover,
         BigDecimal totalReturnPercent,
         BigDecimal buyAndHoldReturnPercent,
         BigDecimal maxDrawdownPercent,
@@ -36,6 +41,10 @@ public record Report(
             BigDecimal exitPrice,
             BigDecimal quantity,
             BigDecimal profitLoss,
-            BigDecimal profitLossPercent) {
+            BigDecimal profitLossPercent,
+            BigDecimal grossProfitLoss,
+            BigDecimal fees,
+            BigDecimal slippage,
+            BigDecimal turnover) {
     }
 }

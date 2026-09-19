@@ -26,7 +26,11 @@ public record BacktestReportDocument(
             String dataStart,
             String dataEnd,
             String executionModel,
-            String positionSizingModel) {
+            String positionSizingModel,
+            BigDecimal orderQuantity,
+            BigDecimal feePerSidePercent,
+            BigDecimal slippagePerSidePercent,
+            BigDecimal roundTripCostPercent) {
     }
 
     public record Strategy(
@@ -38,6 +42,11 @@ public record BacktestReportDocument(
             int closedTradeCount,
             BigDecimal initialCash,
             BigDecimal finalValue,
+            BigDecimal grossProfitLoss,
+            BigDecimal netProfitLoss,
+            BigDecimal fees,
+            BigDecimal slippage,
+            BigDecimal turnover,
             BigDecimal totalReturnPercent,
             BigDecimal buyAndHoldReturnPercent,
             BigDecimal maxDrawdownPercent,

@@ -3,8 +3,10 @@ package ch.lueem.tradingbot.core.strategy;
 import ch.lueem.tradingbot.core.strategy.action.QueuedActionEvaluator;
 import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
+import ch.lueem.tradingbot.core.strategy.ta4j.Ta4jStrategyActionEvaluator;
 import ch.lueem.tradingbot.core.strategy.ta4j.Ta4jStrategyFactory;
 import jakarta.inject.Singleton;
+import org.ta4j.core.Rule;
 
 /**
  * Central entry point for building strategy evaluators across all modes.
@@ -27,8 +29,27 @@ public class StrategyEvaluatorFactory {
     public StrategyActionEvaluator create(StrategyDefinition definition, StrategyEvaluatorContext context) {
         return switch (definition.name()) {
             case QUEUED_ACTIONS -> new QueuedActionEvaluator(context.queuedActions());
-            default -> ta4jStrategyFactory.create(definition, context.series());
+            default -> new Ta4jStrategyActionEvaluator(
+                    context.series(),
+                    ta4jStrategyFactory.create(definition, context.series()));
         };
+    }
+
+    public StrategyActionEvaluator create(
+            StrategyDefinition definition,
+            StrategyEvaluatorContext context,
+            Rule entryFilter,
+            int entryFilterUnstableBars) {
+        if (QUEUED_ACTIONS.equals(definition.name())) {
+            throw new IllegalArgumentException("Entry filters require a ta4j strategy.");
+        }
+        return new Ta4jStrategyActionEvaluator(
+                context.series(),
+                ta4jStrategyFactory.create(
+                        definition,
+                        context.series(),
+                        entryFilter,
+                        entryFilterUnstableBars));
     }
 
     public int requiredHistoryBars(StrategyDefinition definition) {

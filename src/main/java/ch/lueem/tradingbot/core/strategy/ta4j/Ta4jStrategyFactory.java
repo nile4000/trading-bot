@@ -1,19 +1,22 @@
 package ch.lueem.tradingbot.core.strategy.ta4j;
 
-import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyParameters;
 import org.ta4j.core.BarSeries;
+import org.ta4j.core.BaseStrategy;
 import org.ta4j.core.Rule;
+import org.ta4j.core.Strategy;
 import org.ta4j.core.indicators.RSIIndicator;
 import org.ta4j.core.indicators.averages.EMAIndicator;
 import org.ta4j.core.indicators.averages.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.rules.CrossedDownIndicatorRule;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
+import org.ta4j.core.rules.OverIndicatorRule;
+import org.ta4j.core.rules.UnderIndicatorRule;
 
 /**
- * Builds ta4j-backed action evaluators from strategy definitions.
+ * Builds ta4j strategies from application strategy definitions.
  */
 public class Ta4jStrategyFactory {
 
@@ -21,16 +24,29 @@ public class Ta4jStrategyFactory {
     private static final String SMA_CROSS = "sma_cross";
     private static final String RSI_REVERSION = "rsi_reversion";
 
-    public StrategyActionEvaluator create(StrategyDefinition definition, BarSeries series) {
+    public Strategy create(StrategyDefinition definition, BarSeries series) {
+        return create(definition, series, null, 0);
+    }
+
+    public Strategy create(
+            StrategyDefinition definition,
+            BarSeries series,
+            Rule entryFilter,
+            int entryFilterUnstableBars) {
         return switch (definition.name()) {
-            case EMA_CROSS -> createEmaCrossEvaluator(definition.parameters(), series);
-            case SMA_CROSS -> createSmaCrossEvaluator(definition.parameters(), series);
-            case RSI_REVERSION -> createRsiReversionEvaluator(definition.parameters(), series);
+            case EMA_CROSS -> createEmaCrossStrategy(definition, series, entryFilter, entryFilterUnstableBars);
+            case SMA_CROSS -> createSmaCrossStrategy(definition, series, entryFilter, entryFilterUnstableBars);
+            case RSI_REVERSION -> createRsiReversionStrategy(definition, series, entryFilter, entryFilterUnstableBars);
             default -> throw new IllegalStateException("Unsupported ta4j strategy: " + definition.name());
         };
     }
 
-    private StrategyActionEvaluator createEmaCrossEvaluator(StrategyParameters parameters, BarSeries series) {
+    private Strategy createEmaCrossStrategy(
+            StrategyDefinition definition,
+            BarSeries series,
+            Rule entryFilter,
+            int entryFilterUnstableBars) {
+        StrategyParameters parameters = definition.parameters();
         validateShortLongParameters(parameters);
 
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
@@ -39,10 +55,16 @@ public class Ta4jStrategyFactory {
         EMAIndicator longEma = new EMAIndicator(closePrice, parameters.longEma());
         Rule entryRule = new CrossedUpIndicatorRule(shortEma, longEma);
         Rule exitRule = new CrossedDownIndicatorRule(shortEma, longEma);
-        return new Ta4jStrategyActionEvaluator(series, entryRule, exitRule, parameters.longEma());
+        return strategy(definition.name(), entryRule, exitRule, longEma.getCountOfUnstableBars(), entryFilter,
+                entryFilterUnstableBars);
     }
 
-    private StrategyActionEvaluator createSmaCrossEvaluator(StrategyParameters parameters, BarSeries series) {
+    private Strategy createSmaCrossStrategy(
+            StrategyDefinition definition,
+            BarSeries series,
+            Rule entryFilter,
+            int entryFilterUnstableBars) {
+        StrategyParameters parameters = definition.parameters();
         validateShortLongParameters(parameters);
 
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
@@ -51,18 +73,37 @@ public class Ta4jStrategyFactory {
         SMAIndicator longSma = new SMAIndicator(closePrice, parameters.longEma());
         Rule entryRule = new CrossedUpIndicatorRule(shortSma, longSma);
         Rule exitRule = new CrossedDownIndicatorRule(shortSma, longSma);
-        return new Ta4jStrategyActionEvaluator(series, entryRule, exitRule, parameters.longEma());
+        return strategy(definition.name(), entryRule, exitRule, longSma.getCountOfUnstableBars(), entryFilter,
+                entryFilterUnstableBars);
     }
 
-    private StrategyActionEvaluator createRsiReversionEvaluator(StrategyParameters parameters, BarSeries series) {
+    private Strategy createRsiReversionStrategy(
+            StrategyDefinition definition,
+            BarSeries series,
+            Rule entryFilter,
+            int entryFilterUnstableBars) {
+        StrategyParameters parameters = definition.parameters();
         validateRsiParameters(parameters);
 
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
         // Buy when RSI is below the lower threshold, sell when RSI rises above the upper threshold.
         RSIIndicator rsi = new RSIIndicator(closePrice, parameters.rsiPeriod());
-        Rule entryRule = (index, tradingRecord) -> rsi.getValue(index).doubleValue() < parameters.buyBelow();
-        Rule exitRule = (index, tradingRecord) -> rsi.getValue(index).doubleValue() > parameters.sellAbove();
-        return new Ta4jStrategyActionEvaluator(series, entryRule, exitRule, parameters.rsiPeriod());
+        Rule entryRule = new UnderIndicatorRule(rsi, parameters.buyBelow());
+        Rule exitRule = new OverIndicatorRule(rsi, parameters.sellAbove());
+        return strategy(definition.name(), entryRule, exitRule, rsi.getCountOfUnstableBars(), entryFilter,
+                entryFilterUnstableBars);
+    }
+
+    private Strategy strategy(
+            String name,
+            Rule entryRule,
+            Rule exitRule,
+            int unstableBars,
+            Rule entryFilter,
+            int entryFilterUnstableBars) {
+        Rule effectiveEntryRule = entryFilter == null ? entryRule : entryRule.and(entryFilter);
+        int effectiveUnstableBars = Math.max(unstableBars, entryFilterUnstableBars);
+        return new BaseStrategy(name, effectiveEntryRule, exitRule, effectiveUnstableBars);
     }
 
     private void validateShortLongParameters(StrategyParameters parameters) {

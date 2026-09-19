@@ -1,9 +1,7 @@
 package ch.lueem.tradingbot.adapters.market;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZoneOffset;
-import java.util.AbstractList;
 import java.util.List;
 import java.util.Objects;
 
@@ -66,8 +64,8 @@ public class BinanceKlineSnapshotProvider implements MarketSnapshotProvider {
                 definition.symbol(),
                 definition.timeframe(),
                 bar.getEndTime().atOffset(ZoneOffset.UTC),
-                decimal(bar.getClosePrice()),
-                closePriceHistoryView(index),
+                bar.getClosePrice().bigDecimalValue(),
+                bar.getClosePrice().bigDecimalValue(),
                 index);
     }
 
@@ -110,24 +108,4 @@ public class BinanceKlineSnapshotProvider implements MarketSnapshotProvider {
                 .build();
     }
 
-    private List<BigDecimal> closePriceHistoryView(int endIndexInclusive) {
-        return new AbstractList<>() {
-            @Override
-            public BigDecimal get(int index) {
-                if (index < 0 || index > endIndexInclusive) {
-                    throw new IndexOutOfBoundsException("index: " + index + ", size: " + size());
-                }
-                return decimal(series.getBar(index).getClosePrice());
-            }
-
-            @Override
-            public int size() {
-                return endIndexInclusive + 1;
-            }
-        };
-    }
-
-    private BigDecimal decimal(org.ta4j.core.num.Num value) {
-        return new BigDecimal(value.toString());
-    }
 }

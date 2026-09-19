@@ -7,8 +7,8 @@ import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
  * Describes the simulation context and assumptions of one backtest run.
  *
  * @param mode the shared execution mode, using BACKTEST for historical simulation
- * @param executionModel the fill timing assumption, e.g. action execution on the action-bar close
- * @param positionSizingModel the position sizing rule, e.g. full cash allocation per entry
+ * @param executionModel the fill timing assumption, e.g. signal evaluation at close and execution at the next open
+ * @param positionSizingModel the position sizing rule used for each entry
  */
 public record Metadata(
         BotMode mode,

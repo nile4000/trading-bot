@@ -1,5 +1,6 @@
 package ch.lueem.tradingbot.adapters.config.backtest;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 
 import ch.lueem.tradingbot.core.runtime.BotMode;
@@ -14,7 +15,11 @@ public record BacktestConfig(
         String symbol,
         String timeframe,
         StrategyDefinition strategy,
-        PortfolioConfig portfolio
+        PortfolioConfig portfolio,
+        BigDecimal orderQuantity,
+        BigDecimal executionFeeRate,
+        BigDecimal slippageRate,
+        AdxFilterConfig adxFilter
 ) {
     public TradingDefinition toTradingDefinition() {
         return new TradingDefinition(

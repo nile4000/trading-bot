@@ -4,6 +4,7 @@ import java.nio.file.Path;
 
 import ch.lueem.tradingbot.adapters.config.ReportingConfig;
 import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
+import ch.lueem.tradingbot.adapters.config.backtest.AdxFilterConfig;
 import ch.lueem.tradingbot.adapters.config.backtest.PortfolioConfig;
 import ch.lueem.tradingbot.adapters.config.paper.BinanceConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperBotConfig;
@@ -37,7 +38,14 @@ public class QuarkusRuntimeProducer {
                 backtest.symbol(),
                 backtest.timeframe(),
                 toStrategyDefinition(backtest.strategy()),
-                new PortfolioConfig(backtest.portfolio().initialCash()));
+                new PortfolioConfig(backtest.portfolio().initialCash()),
+                backtest.orderQuantity(),
+                backtest.executionFeeRate(),
+                backtest.slippageRate(),
+                new AdxFilterConfig(
+                        backtest.filters().adx().enabled(),
+                        backtest.filters().adx().period(),
+                        backtest.filters().adx().minimumStrength()));
     }
 
     @Produces

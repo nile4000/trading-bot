@@ -11,14 +11,21 @@ import ch.lueem.tradingbot.modes.backtest.model.Report;
 import ch.lueem.tradingbot.adapters.market.CsvMarketSnapshotProvider;
 import ch.lueem.tradingbot.adapters.execution.simulated.SimulatedExecutionService;
 import ch.lueem.tradingbot.adapters.portfolio.SimulatedPortfolioService;
+import ch.lueem.tradingbot.core.execution.Request;
+import ch.lueem.tradingbot.core.execution.Result;
+import ch.lueem.tradingbot.core.execution.Status;
 import ch.lueem.tradingbot.core.runtime.RuntimeCycleResult;
-import ch.lueem.tradingbot.core.runtime.TradingRuntime;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorContext;
 import ch.lueem.tradingbot.core.strategy.StrategyEvaluatorFactory;
+import ch.lueem.tradingbot.core.strategy.action.ActionContext;
 import ch.lueem.tradingbot.core.strategy.action.StrategyActionEvaluator;
+import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.ta4j.core.BarSeries;
+import org.ta4j.core.analysis.cost.LinearTransactionCostModel;
+import org.ta4j.core.indicators.adx.ADXIndicator;
+import org.ta4j.core.rules.OverIndicatorRule;
 
 /**
  * Coordinates CSV loading, strategy creation and result calculation for one
@@ -52,16 +59,16 @@ public class Runner {
         var marketSnapshotProvider = createMarketSnapshotProvider(config, series);
         var portfolioService = createPortfolioService(config);
         var evaluator = createStrategyEvaluator(config, series);
-        var runtime = new TradingRuntime(
-                config.toTradingDefinition(),
-                marketSnapshotProvider,
+        var executionService = new SimulatedExecutionService(
                 portfolioService,
-                evaluator,
-                new SimulatedExecutionService(portfolioService));
+                config.orderQuantity(),
+                config.slippageRate(),
+                new LinearTransactionCostModel(config.executionFeeRate().doubleValue()));
 
         return reportGenerator.assemble(
                 config,
-                runHistoricalCycles(runtime, marketSnapshotProvider.snapshotCount()));
+                runHistoricalCycles(config, marketSnapshotProvider, portfolioService, evaluator,
+                        executionService));
     }
 
     private BarSeries createBarSeries(BacktestConfig config) {
@@ -82,19 +89,55 @@ public class Runner {
     }
 
     private StrategyActionEvaluator createStrategyEvaluator(BacktestConfig config, BarSeries series) {
-        return strategyFactory.create(config.strategy(), StrategyEvaluatorContext.ta4j(series));
+        if (!config.adxFilter().enabled()) {
+            return strategyFactory.create(
+                    config.strategy(),
+                    StrategyEvaluatorContext.ta4j(series));
+        }
+        ADXIndicator adx = new ADXIndicator(series, config.adxFilter().period());
+        return strategyFactory.create(
+                config.strategy(),
+                StrategyEvaluatorContext.ta4j(series),
+                new OverIndicatorRule(adx, config.adxFilter().minimumStrength()),
+                adx.getCountOfUnstableBars());
     }
 
     private List<RuntimeCycleResult> runHistoricalCycles(
-            TradingRuntime runtime,
-            int cycleCount) {
+            BacktestConfig config,
+            CsvMarketSnapshotProvider marketSnapshotProvider,
+            SimulatedPortfolioService portfolioService,
+            StrategyActionEvaluator evaluator,
+            SimulatedExecutionService executionService) {
+        int cycleCount = marketSnapshotProvider.snapshotCount();
         if (cycleCount <= 0) {
             throw new IllegalArgumentException("cycleCount must be greater than zero.");
         }
 
         var results = new ArrayList<RuntimeCycleResult>(cycleCount);
+        TradeAction pendingAction = TradeAction.HOLD;
         for (int cycle = 0; cycle < cycleCount; cycle++) {
-            results.add(runtime.cycle());
+            var snapshot = marketSnapshotProvider.load(config.toTradingDefinition());
+            var positionBeforeExecution = portfolioService.getSnapshot(config.symbol()).position();
+            Result executionResult = pendingAction == TradeAction.HOLD
+                    ? new Result(Status.SKIPPED, false, positionBeforeExecution.open(), "No pending signal to execute.")
+                    : executionService.execute(new Request(
+                            config.toTradingDefinition().runtimeId(),
+                            config.symbol(),
+                            config.timeframe(),
+                            pendingAction,
+                            snapshot.observedAt().minus(Timeframes.parse(config.timeframe())),
+                            snapshot.executionPrice()));
+
+            var portfolioAfterExecution = portfolioService.getSnapshot(config.symbol());
+            results.add(new RuntimeCycleResult(
+                    snapshot,
+                    portfolioAfterExecution,
+                    pendingAction,
+                    executionResult));
+
+            pendingAction = evaluator.evaluate(new ActionContext(
+                    portfolioAfterExecution.position().open(),
+                    snapshot.barIndex()));
         }
         return List.copyOf(results);
     }

@@ -153,7 +153,21 @@ Backtest im Dev-Modus:
 mvn quarkus:dev '-Dquarkus.args=backtest' '-Dquarkus.profile=backtest-1h'
 ```
 
-Verfuegbare Backtest-Profile sind `backtest-1m`, `backtest-5m`, `backtest-15m` und `backtest-1h`.
+Verfuegbare Backtest-Profile sind `backtest-1m`, `backtest-5m`, `backtest-15m`, `backtest-1h` und `backtest-1h-adx`.
+
+EMA mit ADX-Trendfilter auf den 1h-Daten:
+
+```powershell
+mvn quarkus:dev '-Dquarkus.args=backtest' '-Dquarkus.profile=backtest-1h-adx'
+```
+
+Der Block `trading.backtest.filters.adx` in `application.yaml` steuert den Filter mit `enabled`, `period` und `minimum-strength`. Er kann vor jede Backtest-Strategie geschaltet werden, gilt nur fuer `BUY` und laesst `SELL` und `HOLD` unveraendert.
+
+`trading.backtest.execution-fee-rate` und `trading.backtest.slippage-rate` gelten nur fuer historische Simulationen und werden je Orderseite berechnet. Mit den Standardwerten von `0.001` Gebuehr und `0.0005` Slippage kostet ein Roundtrip ungefaehr `0.30 %`. Binance-Demo-Orders verwenden weiterhin ausschliesslich die von Binance gelieferten Gebuehren.
+
+`trading.backtest.order-quantity` legt die feste BTC-Menge pro simuliertem Trade fest und steht standardmaessig wie der Fly-Paper-Betrieb auf `0.0001`.
+
+Backtest-Signale werden am Kerzenschluss ausgewertet und erst zum Open der naechsten Kerze ausgefuehrt.
 
 ## Architektur
 
