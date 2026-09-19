@@ -114,7 +114,7 @@ public interface TradingBotRuntimeConfig {
         long tickIntervalMillis();
 
         @Positive
-        BigDecimal initialCash();
+        BigDecimal botInitialCash();
 
         @Positive
         BigDecimal orderQuantity();

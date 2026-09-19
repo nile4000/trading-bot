@@ -69,7 +69,7 @@ public class PaperBotSetup {
     private PaperPortfolioService createPortfolioService(PaperConfig paper) {
         return new PaperPortfolioService(
                 paper.bot().symbol(),
-                paper.execution().initialCash());
+                paper.execution().botInitialCash());
     }
 
     private ExecutionService createExecutionService(

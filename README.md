@@ -54,7 +54,7 @@ Ein Log mit `decision=HOLD`, `execution=SKIPPED` und `detail=no_action` bedeutet
 - rekonstruiert die Bot-Position beim Start aus den Orders, deren `clientOrderId` zur konfigurierten `bot-id` gehoert
 - gleicht den rekonstruierten Bestand mit den Binance-Kontostaenden ab
 
-`initial-cash` ist auch in diesem Modus das dem Bot zugewiesene Startbudget. Frei verfuegbares Guthaben im Binance-Konto allein erhoeht dieses Budget nicht.
+`bot-initial-cash` ist auch in diesem Modus das dem Bot zugewiesene Startbudget. Frei verfuegbares Guthaben im Binance-Konto allein erhoeht dieses Budget nicht.
 
 Pro `bot-id` darf nur eine Instanz gleichzeitig laufen. Der Code erzwingt diese Betriebsregel derzeit nicht. Werden bei der Synchronisation 1000 Orders oder 1000 Trades zurueckgegeben, bricht der Bot ab, da noch keine Pagination implementiert ist.
 
@@ -88,7 +88,7 @@ Wichtige Paper-Einstellungen:
 - `trading.paper.bot.symbol`: Handelspaar, zum Beispiel `BTCUSDT`
 - `trading.paper.bot.timeframe`: Kline-Intervall, zum Beispiel `1m`
 - `trading.paper.execution.order-quantity`: Kaufmenge und initiale Validierungsmenge
-- `trading.paper.execution.initial-cash`: dem Bot zugewiesenes Startbudget
+- `trading.paper.execution.bot-initial-cash`: dem Bot zugewiesenes Startbudget
 - `trading.paper.execution.max-order-notional`: maximale Kauf-Ordergroesse in der Quote-Waehrung
 - `trading.paper.execution.tick-interval-millis`: Polling-Intervall; eine Kline wird trotzdem nur einmal verarbeitet
 
@@ -107,13 +107,9 @@ mvn package -DskipTests
 Paper-Bot im Quarkus-Dev-Modus starten:
 
 ```powershell
-mvn quarkus:dev '-Dquarkus.args=paper' '-Dquarkus.profile=paper'
-```
-
-Gepackten Paper-Bot starten:
-
-```powershell
-java -Dquarkus.profile=paper -jar target/quarkus-app/quarkus-run.jar paper
+- Run backtest in dev mode: `mvn quarkus:dev -Dquarkus.args=\"backtest\"`
+- Run paper bot in dev mode: `mvn quarkus:dev -Dquarkus.args=\"paper\"`
+- Run packaged app: `java -jar target/quarkus-app/quarkus-run.jar backtest`
 ```
 
 Ein erfolgreicher Start zeigt unter anderem `exchange=BINANCE_SPOT_DEMO`, den konfigurierten Order-Modus und `restBaseUrl=https://demo-api.binance.com`.
@@ -158,7 +154,7 @@ EMA mit ADX-Trendfilter auf den 1h-Daten:
 mvn quarkus:dev '-Dquarkus.args=backtest' '-Dquarkus.profile=backtest-1h-adx'
 ```
 
-Der globale Block `trading.strategy.filters.adx` in `application.yaml` steuert den Filter mit `enabled`, `period` und `minimum-strength` fuer BACKTEST und PAPER. Er kann vor jede ta4j-Strategie geschaltet werden, gilt nur fuer `BUY` und laesst `SELL` und `HOLD` unveraendert.
+Der globale Block `trading.strategy.filters.adx` in `application.yaml` steuert den Filter mit `enabled`, `period` und `minimum-strength` fuer BACKTEST und PAPER. Er kann vor jede ta4j-Strategie geschaltet werden, gilt nur fuer `BUY` und laesst `SELL` und `HOLD` unveraendert. Der Fly-Paper-Bot aktiviert ADX explizit ueber `TRADING_STRATEGY_FILTERS_ADX_ENABLED=true` in `fly.toml`; mit den aktuellen Defaults wird ein `BUY` nur bei einer ADX-Staerke ueber `20` zugelassen.
 
 `trading.backtest.execution-fee-rate` und `trading.backtest.slippage-rate` gelten nur fuer historische Simulationen und werden je Orderseite berechnet. Mit den Standardwerten von `0.001` Gebuehr und `0.0005` Slippage kostet ein Roundtrip ungefaehr `0.30 %`. Binance-Demo-Orders verwenden weiterhin ausschliesslich die von Binance gelieferten Gebuehren.
 

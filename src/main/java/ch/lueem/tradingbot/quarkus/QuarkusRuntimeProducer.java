@@ -62,7 +62,7 @@ public class QuarkusRuntimeProducer {
                         paper.execution().exchange(),
                         paper.execution().orderMode(),
                         paper.execution().tickIntervalMillis(),
-                        paper.execution().initialCash(),
+                        paper.execution().botInitialCash(),
                         paper.execution().orderQuantity(),
                         paper.execution().placeOrdersEnabled(),
                         paper.execution().maxOrderNotional().orElse(null)),

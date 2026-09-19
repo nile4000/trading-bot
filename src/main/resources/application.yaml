@@ -11,7 +11,7 @@ trading:
       long-ema: 7
     filters:
       adx:
-        enabled: false
+        enabled: true
         period: 14
         minimum-strength: 20
   backtest:
@@ -33,10 +33,10 @@ trading:
       exchange: BINANCE_SPOT_DEMO
       order-mode: VALIDATE_ONLY
       tick-interval-millis: 10000
-      initial-cash: 1000.0
-      order-quantity: 0.0001
+      bot-initial-cash: 10000.0
+      order-quantity: 0.0015
       place-orders-enabled: false
-      max-order-notional: 25.0
+      max-order-notional: 150.0
     binance:
       api-key: ${BINANCE_DEMO_API_KEY:}
       secret-key: ${BINANCE_DEMO_SECRET_KEY:}

@@ -9,7 +9,7 @@ public record PaperExecutionConfig(
         PaperExchange exchange,
         PaperOrderMode orderMode,
         long tickIntervalMillis,
-        BigDecimal initialCash,
+        BigDecimal botInitialCash,
         BigDecimal orderQuantity,
         boolean placeOrdersEnabled,
         BigDecimal maxOrderNotional

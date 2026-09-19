@@ -1,5 +1,8 @@
 # Coding Style
 
+Diese Datei ist die verbindliche Quelle für Projekt-, Architektur- und
+Coding-Regeln.
+
 ## Projekt
 
 Java-21-Quarkus-Anwendung für Backtests und Paper-Trading. Die Anwendung nutzt
@@ -15,6 +18,8 @@ ta4j für Strategie- und Indikatorlogik sowie Binance Spot Demo für Paper-Order
   Ausführung, Portfolio, Reporting und Konfiguration.
 - `quarkus` enthält Picocli-Einstiegspunkte, CDI-Wiring und Quarkus-Konfiguration.
 - Ausgabeformate gehören in `adapters.reporting`, nicht in Commands oder Logs.
+- Neue Abhängigkeiten dürfen nicht aus `core` nach außen führen; die
+  Zusammenstellung von Kernlogik und Infrastruktur geschieht außerhalb von `core`.
 
 ## Allgemein
 
@@ -25,15 +30,27 @@ ta4j für Strategie- und Indikatorlogik sowie Binance Spot Demo für Paper-Order
 - Benenne Klassen nach ihrer Rolle, nicht nach einem nebensächlichen
   Speicher- oder Implementierungsdetail.
 - Kommentare erklären nur Absichten, Annahmen oder Trade-offs. Vereinfache
-  Trading- und Backtest-Annahmen nahe am betroffenen Code.
+  Trading- und Backtest-Annahmen nahe am betroffenen Code. Keine
+  Klassenkommentare ergänzen, die nur den Namen oder die offensichtliche Aufgabe
+  wiederholen.
+- Verwende Konstruktor-Injection, außer wenn eine Framework-Schnittstelle die
+  Verdrahtung vorgibt.
 - Keine toten Pfade, TODOs ohne konkreten Inhalt oder Debug-Ausgaben einchecken.
+- Keine API-Schlüssel oder Secrets loggen, in Reports ausgeben oder einchecken.
+- Keine Mainnet- oder Echtgeld-Unterstützung hinzufügen und bestehende
+  Demo-/Order-Sicherungen nicht ohne ausdrücklichen Auftrag lockern.
+- Zeitabhängige fachliche Logik erhält Zeit von außen, etwa über `Clock`, damit
+  sie deterministisch testbar bleibt.
 
 ## Fachliche Regeln
 
 - Verwende `BigDecimal` für Preise, Mengen, Gebühren, Geld- und Prozentwerte;
-  niemals `double` oder `float`.
+  für diese Werte niemals `double` oder `float`. Technische Werte wie
+  Zeitfenster dürfen den vom externen API vorgegebenen Typ verwenden.
+- Runde erst an einer externen Grenze, etwa für Börsenregeln oder die
+  Reportausgabe; intern bleibt die verfügbare Präzision erhalten.
 - Halte Ausführungsannahmen explizit. Backtest-Ergebnisse verwenden die
-  definierte Ausführung, Gebühren und Slippage; Paper-Orders verwenden die von
+  definierte Ausführung, Gebühren und Slippage. `PLACE_ORDER` verwendet die von
   Binance zurückgegebenen Fills und Gebühren.
 - Strategielogik bleibt in `core.strategy`; ta4j ist die Implementierungsbasis
   für Indikatoren und Strategien, nicht das Berichtsmodell.
@@ -43,9 +60,9 @@ ta4j für Strategie- und Indikatorlogik sowie Binance Spot Demo für Paper-Order
 
 ## Konfiguration und Fehlerbehandlung
 
-- Neue verhaltenssteuernde Einstellungen kommen nach `application.yaml` und
-  werden als kleine, getypte Quarkus-Config-Mappings unter `adapters.config`
-  abgebildet.
+- Neue verhaltenssteuernde Einstellungen kommen nach `application.yaml`.
+  Quarkus-Config-Mappings liegen in `quarkus`; die daraus abgeleiteten kleinen,
+  getypten Konfigurationsmodelle liegen unter `adapters.config`.
 - Konfiguration nach Concern gruppieren: `trading.app`, `trading.reporting`,
   `trading.backtest` und `trading.paper`.
 - Validiere an Systemgrenzen und für fachliche Invarianten. Keine redundanten
@@ -61,7 +78,10 @@ ta4j für Strategie- und Indikatorlogik sowie Binance Spot Demo für Paper-Order
 - Das Backtest-JSON bleibt stabil, maschinenlesbar und versioniert; Geld- und
   Prozentwerte werden numerisch mit Skala `4` ausgegeben.
 - Ergänze oder aktualisiere bei Verhaltensänderungen fokussierte JUnit-Tests.
-- Teste kein reines technisches Wiring: insbesondere keine ausschließlichen
-  Tests für Framework-, Factory-, DTO-, Ausgabe- oder Setup-Verdrahtung.
-- Vor dem Abschluss mindestens die betroffenen Tests ausführen; bei größeren
-  Änderungen zusätzlich `mvn clean test` oder mindestens `mvn compile`.
+- Teste fachliches Verhalten und Regressionen, nicht reine technische
+  Verdrahtung. Factory-Tests sind nur sinnvoll, wenn die Factory selbst
+  fachliche Auswahl- oder Berechnungslogik enthält.
+- Tests rufen keine echten Binance-Endpunkte auf.
+- Vor dem Abschluss die betroffenen Tests ausführen; bei größeren Änderungen
+  `mvn test`. `mvn compile` genügt nur, wenn kein sinnvoller Testpfad betroffen
+  ist.
