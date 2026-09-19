@@ -134,7 +134,7 @@ public class ReportGenerator {
             BacktestConfig config,
             List<RuntimeCycleResult> cycleResults,
             RuntimeCycleResult lastCycle) {
-        var initialCash = scale(BigDecimal.valueOf(config.portfolio().initialCash()));
+        var initialCash = scale(config.portfolio().initialCash());
         var finalValue = calculateEquity(lastCycle);
 
         return new Performance(

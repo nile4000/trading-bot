@@ -30,7 +30,7 @@ class ReportGeneratorPrecisionTest {
                 "BTCUSDT",
                 "1h",
                 new StrategyDefinition("ema_cross", new StrategyParameters(3, 7)),
-                new PortfolioConfig(10000.0),
+                new PortfolioConfig(new BigDecimal("10000.0")),
                 new BigDecimal("0.0001"),
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,

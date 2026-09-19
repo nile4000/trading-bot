@@ -31,7 +31,7 @@ class ConfigRecordValidationTest {
                         PaperExchange.BINANCE_SPOT_DEMO,
                         PaperOrderMode.PLACE_ORDER,
                         1_000L,
-                        10_000.0,
+                        new BigDecimal("10000.0"),
                         new BigDecimal("0.01000000"),
                         false,
                         null));

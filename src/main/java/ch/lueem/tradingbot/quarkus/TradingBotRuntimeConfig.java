@@ -80,7 +80,7 @@ public interface TradingBotRuntimeConfig {
 
     interface Portfolio {
         @Positive
-        double initialCash();
+        BigDecimal initialCash();
     }
 
     interface Paper {
@@ -114,7 +114,7 @@ public interface TradingBotRuntimeConfig {
         long tickIntervalMillis();
 
         @Positive
-        double initialCash();
+        BigDecimal initialCash();
 
         @Positive
         BigDecimal orderQuantity();

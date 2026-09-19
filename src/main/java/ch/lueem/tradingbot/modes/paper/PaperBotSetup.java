@@ -1,6 +1,5 @@
 package ch.lueem.tradingbot.modes.paper;
 
-import java.math.BigDecimal;
 
 import ch.lueem.tradingbot.adapters.config.paper.PaperConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperOrderMode;
@@ -70,7 +69,7 @@ public class PaperBotSetup {
     private PaperPortfolioService createPortfolioService(PaperConfig paper) {
         return new PaperPortfolioService(
                 paper.bot().symbol(),
-                BigDecimal.valueOf(paper.execution().initialCash()));
+                paper.execution().initialCash());
     }
 
     private ExecutionService createExecutionService(

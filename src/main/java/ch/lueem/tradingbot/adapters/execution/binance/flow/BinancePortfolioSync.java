@@ -82,7 +82,7 @@ public class BinancePortfolioSync {
     }
 
     private ReconstructedPortfolio initialPortfolio() {
-        return new ReconstructedPortfolio(BigDecimal.valueOf(paper.execution().initialCash()));
+        return new ReconstructedPortfolio(paper.execution().initialCash());
     }
 
     private void applyFill(BinanceFill fill, ReconstructedPortfolio portfolio) {

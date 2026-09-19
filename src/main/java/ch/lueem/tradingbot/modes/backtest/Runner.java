@@ -1,6 +1,5 @@
 package ch.lueem.tradingbot.modes.backtest;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,7 +81,7 @@ public class Runner {
 
     private SimulatedPortfolioService createPortfolioService(BacktestConfig config) {
         var portfolioService = new SimulatedPortfolioService();
-        portfolioService.seedCash(config.symbol(), BigDecimal.valueOf(config.portfolio().initialCash()));
+        portfolioService.seedCash(config.symbol(), config.portfolio().initialCash());
         return portfolioService;
     }
 

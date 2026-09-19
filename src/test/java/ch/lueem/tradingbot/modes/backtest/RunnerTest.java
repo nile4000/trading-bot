@@ -105,7 +105,7 @@ class RunnerTest {
                 "BTCUSDT",
                 "1h",
                 strategy,
-                new PortfolioConfig(10000.0),
+                new PortfolioConfig(new java.math.BigDecimal("10000.0")),
                 new java.math.BigDecimal("0.0001"),
                 java.math.BigDecimal.ZERO,
                 java.math.BigDecimal.ZERO,
