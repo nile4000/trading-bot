@@ -2,6 +2,7 @@
 
 ![last commit](https://img.shields.io/github/last-commit/nile4000/trading-bot)
 ![Modus](https://img.shields.io/badge/Modus-Backtest%20%2B%20Paper-informational)
+![CI](https://github.com/nile4000/trading-bot/actions/workflows/ci.yml/badge.svg)
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)
 ![Quarkus](https://img.shields.io/badge/Quarkus-Picocli-4695EB?logo=quarkus&logoColor=white)
