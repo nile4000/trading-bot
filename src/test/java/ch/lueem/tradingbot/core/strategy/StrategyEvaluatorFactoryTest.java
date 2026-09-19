@@ -17,6 +17,9 @@ class StrategyEvaluatorFactoryTest {
         assertEquals(42, factory.requiredHistoryBars(
                 new StrategyDefinition("rsi_reversion", StrategyParameters.rsiReversion(14, 30, 70))));
         assertEquals(0, factory.requiredHistoryBars(new StrategyDefinition("queued_actions", null)));
+        assertEquals(42, factory.requiredHistoryBars(
+                new StrategyDefinition("ema_cross", new StrategyParameters(3, 7)),
+                new AdxFilterConfig(true, 14, 20)));
     }
 
 }

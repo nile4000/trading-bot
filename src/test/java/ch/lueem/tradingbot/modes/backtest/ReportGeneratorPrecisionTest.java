@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
-import ch.lueem.tradingbot.adapters.config.backtest.AdxFilterConfig;
+import ch.lueem.tradingbot.core.strategy.AdxFilterConfig;
 import ch.lueem.tradingbot.adapters.config.backtest.PortfolioConfig;
 import ch.lueem.tradingbot.core.execution.Result;
 import ch.lueem.tradingbot.core.execution.Status;

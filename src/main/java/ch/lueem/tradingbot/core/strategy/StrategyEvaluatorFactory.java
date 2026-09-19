@@ -7,6 +7,8 @@ import ch.lueem.tradingbot.core.strategy.ta4j.Ta4jStrategyActionEvaluator;
 import ch.lueem.tradingbot.core.strategy.ta4j.Ta4jStrategyFactory;
 import jakarta.inject.Singleton;
 import org.ta4j.core.Rule;
+import org.ta4j.core.indicators.adx.ADXIndicator;
+import org.ta4j.core.rules.OverIndicatorRule;
 
 /**
  * Central entry point for building strategy evaluators across all modes.
@@ -33,6 +35,21 @@ public class StrategyEvaluatorFactory {
                     context.series(),
                     ta4jStrategyFactory.create(definition, context.series()));
         };
+    }
+
+    public StrategyActionEvaluator create(
+            StrategyDefinition definition,
+            StrategyEvaluatorContext context,
+            AdxFilterConfig adxFilter) {
+        if (!adxFilter.enabled()) {
+            return create(definition, context);
+        }
+        ADXIndicator adx = new ADXIndicator(context.series(), adxFilter.period());
+        return create(
+                definition,
+                context,
+                new OverIndicatorRule(adx, adxFilter.minimumStrength()),
+                adx.getCountOfUnstableBars());
     }
 
     public StrategyActionEvaluator create(
@@ -66,6 +83,14 @@ public class StrategyEvaluatorFactory {
             default -> throw new IllegalStateException("Unsupported strategy: " + definition.name());
         };
         return Math.multiplyExact(3, longestPeriod);
+    }
+
+    public int requiredHistoryBars(StrategyDefinition definition, AdxFilterConfig adxFilter) {
+        int strategyHistoryBars = requiredHistoryBars(definition);
+        if (!adxFilter.enabled()) {
+            return strategyHistoryBars;
+        }
+        return Math.max(strategyHistoryBars, Math.multiplyExact(3, requiredPeriod(adxFilter.period(), "period")));
     }
 
     private int requiredPeriod(Integer period, String fieldName) {

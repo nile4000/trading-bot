@@ -20,12 +20,9 @@ Der Paper-Bot kann aktuell:
 
 Noch nicht vorhanden:
 
-- produktionsfertige Fly.io-Dateien wie `Dockerfile` und `fly.toml`
 - Health-/Management-Endpunkte
 - Pagination beim Kontoabgleich ab 1000 Orders oder Trades pro Symbol
 - Schutz gegen zwei gleichzeitig laufende Instanzen mit derselben `bot-id`
-
-Damit ist der fachliche Demo-Trading-Pfad vorhanden. Fuer ein Fly.io-Deployment fehlt noch die Deployment-Verpackung.
 
 ## Voraussetzungen
 
@@ -72,7 +69,7 @@ BINANCE_DEMO_API_KEY=...
 BINANCE_DEMO_SECRET_KEY=...
 ```
 
-Lokal kann dafuer eine nicht eingecheckte `.env` im Projektverzeichnis verwendet werden. API-Schluessel gehoeren nicht in `application.yaml` oder ins Repository.
+Lokal kann dafuer eine nicht eingecheckte `.env` im Projektverzeichnis verwendet werden.
 
 Fuer echte Demo-Orders muessen in `application.yaml` diese Werte gesetzt sein:
 
@@ -161,7 +158,7 @@ EMA mit ADX-Trendfilter auf den 1h-Daten:
 mvn quarkus:dev '-Dquarkus.args=backtest' '-Dquarkus.profile=backtest-1h-adx'
 ```
 
-Der Block `trading.backtest.filters.adx` in `application.yaml` steuert den Filter mit `enabled`, `period` und `minimum-strength`. Er kann vor jede Backtest-Strategie geschaltet werden, gilt nur fuer `BUY` und laesst `SELL` und `HOLD` unveraendert.
+Der globale Block `trading.strategy.filters.adx` in `application.yaml` steuert den Filter mit `enabled`, `period` und `minimum-strength` fuer BACKTEST und PAPER. Er kann vor jede ta4j-Strategie geschaltet werden, gilt nur fuer `BUY` und laesst `SELL` und `HOLD` unveraendert.
 
 `trading.backtest.execution-fee-rate` und `trading.backtest.slippage-rate` gelten nur fuer historische Simulationen und werden je Orderseite berechnet. Mit den Standardwerten von `0.001` Gebuehr und `0.0005` Slippage kostet ein Roundtrip ungefaehr `0.30 %`. Binance-Demo-Orders verwenden weiterhin ausschliesslich die von Binance gelieferten Gebuehren.
 

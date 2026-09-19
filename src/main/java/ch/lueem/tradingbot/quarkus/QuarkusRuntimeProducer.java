@@ -4,7 +4,6 @@ import java.nio.file.Path;
 
 import ch.lueem.tradingbot.adapters.config.ReportingConfig;
 import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
-import ch.lueem.tradingbot.adapters.config.backtest.AdxFilterConfig;
 import ch.lueem.tradingbot.adapters.config.backtest.PortfolioConfig;
 import ch.lueem.tradingbot.adapters.config.paper.BinanceConfig;
 import ch.lueem.tradingbot.adapters.config.paper.PaperBotConfig;
@@ -14,6 +13,7 @@ import ch.lueem.tradingbot.adapters.config.paper.PaperStrategyConfig;
 import ch.lueem.tradingbot.adapters.binance.client.BinanceClientFactory;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyParameters;
+import ch.lueem.tradingbot.core.strategy.AdxFilterConfig;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 
@@ -37,15 +37,15 @@ public class QuarkusRuntimeProducer {
                 Path.of(backtest.csvPath()),
                 backtest.symbol(),
                 backtest.timeframe(),
-                toStrategyDefinition(backtest.strategy()),
+                toStrategyDefinition(config.strategy()),
                 new PortfolioConfig(backtest.portfolio().initialCash()),
                 backtest.orderQuantity(),
                 backtest.executionFeeRate(),
                 backtest.slippageRate(),
                 new AdxFilterConfig(
-                        backtest.filters().adx().enabled(),
-                        backtest.filters().adx().period(),
-                        backtest.filters().adx().minimumStrength()));
+                        config.strategy().filters().adx().enabled(),
+                        config.strategy().filters().adx().period(),
+                        config.strategy().filters().adx().minimumStrength()));
     }
 
     @Produces
@@ -67,9 +67,13 @@ public class QuarkusRuntimeProducer {
                         paper.execution().placeOrdersEnabled(),
                         paper.execution().maxOrderNotional().orElse(null)),
                 new PaperStrategyConfig(
-                        paper.strategy().name(),
-                        toStrategyParameters(paper.strategy().parameters().orElse(null)),
-                        paper.strategy().actions().orElse(null)),
+                        config.strategy().name(),
+                        toStrategyParameters(config.strategy().parameters().orElse(null)),
+                        config.strategy().actions().orElse(null)),
+                new AdxFilterConfig(
+                        config.strategy().filters().adx().enabled(),
+                        config.strategy().filters().adx().period(),
+                        config.strategy().filters().adx().minimumStrength()),
                 new BinanceConfig(
                         paper.binance().apiKey().orElse(null),
                         paper.binance().secretKey().orElse(null),

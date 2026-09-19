@@ -12,7 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import ch.lueem.tradingbot.adapters.config.backtest.BacktestConfig;
-import ch.lueem.tradingbot.adapters.config.backtest.AdxFilterConfig;
+import ch.lueem.tradingbot.core.strategy.AdxFilterConfig;
 import ch.lueem.tradingbot.adapters.config.backtest.PortfolioConfig;
 import ch.lueem.tradingbot.adapters.market.CsvBarSeriesLoader;
 import ch.lueem.tradingbot.modes.backtest.model.Report;

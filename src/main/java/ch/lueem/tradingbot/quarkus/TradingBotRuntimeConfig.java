@@ -22,6 +22,7 @@ public interface TradingBotRuntimeConfig {
 
     App app();
     Reporting reporting();
+    Strategy strategy();
     Backtest backtest();
     Paper paper();
 
@@ -59,8 +60,6 @@ public interface TradingBotRuntimeConfig {
         @Positive
         BigDecimal orderQuantity();
 
-        Strategy strategy();
-        Filters filters();
         Portfolio portfolio();
     }
 
@@ -88,8 +87,6 @@ public interface TradingBotRuntimeConfig {
         Bot bot();
 
         Execution execution();
-
-        Strategy strategy();
 
         Binance binance();
     }
@@ -147,6 +144,8 @@ public interface TradingBotRuntimeConfig {
         Optional<StrategyParameters> parameters();
 
         Optional<List<TradeAction>> actions();
+
+        Filters filters();
     }
 
     interface StrategyParameters {

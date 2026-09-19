@@ -23,6 +23,7 @@ import ch.lueem.tradingbot.adapters.execution.binance.model.BinanceOrder;
 import ch.lueem.tradingbot.adapters.execution.binance.model.BinanceSymbolInfo;
 import ch.lueem.tradingbot.adapters.execution.binance.order.BinanceClientOrderId;
 import ch.lueem.tradingbot.adapters.portfolio.PaperPortfolioService;
+import ch.lueem.tradingbot.core.strategy.AdxFilterConfig;
 import ch.lueem.tradingbot.core.strategy.action.TradeAction;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyParameters;
 import org.junit.jupiter.api.Test;
@@ -112,6 +113,7 @@ class BinancePortfolioSyncTest {
                 new PaperExecutionConfig(PaperExchange.BINANCE_SPOT_DEMO, PaperOrderMode.PLACE_ORDER,
                         10_000, 1000, new BigDecimal("0.001"), true, new BigDecimal("100")),
                 new PaperStrategyConfig("ema_cross", new StrategyParameters(3, 7), null),
+                new AdxFilterConfig(false, 14, 20),
                 new BinanceConfig("key", "secret", 15_000));
     }
 

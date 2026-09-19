@@ -24,8 +24,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.analysis.cost.LinearTransactionCostModel;
-import org.ta4j.core.indicators.adx.ADXIndicator;
-import org.ta4j.core.rules.OverIndicatorRule;
 
 /**
  * Coordinates CSV loading, strategy creation and result calculation for one
@@ -89,17 +87,10 @@ public class Runner {
     }
 
     private StrategyActionEvaluator createStrategyEvaluator(BacktestConfig config, BarSeries series) {
-        if (!config.adxFilter().enabled()) {
-            return strategyFactory.create(
-                    config.strategy(),
-                    StrategyEvaluatorContext.ta4j(series));
-        }
-        ADXIndicator adx = new ADXIndicator(series, config.adxFilter().period());
         return strategyFactory.create(
                 config.strategy(),
                 StrategyEvaluatorContext.ta4j(series),
-                new OverIndicatorRule(adx, config.adxFilter().minimumStrength()),
-                adx.getCountOfUnstableBars());
+                config.adxFilter());
     }
 
     private List<RuntimeCycleResult> runHistoricalCycles(

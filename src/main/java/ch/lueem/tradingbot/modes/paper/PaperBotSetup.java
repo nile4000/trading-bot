@@ -46,12 +46,13 @@ public class PaperBotSetup {
         var marketSnapshotProvider = new BinanceKlineSnapshotProvider(client);
         marketSnapshotProvider.initialize(
                 definition,
-                Math.max(1, strategyFactory.requiredHistoryBars(definition.strategy())));
+                Math.max(1, strategyFactory.requiredHistoryBars(definition.strategy(), paper.adxFilter())));
         var portfolioService = createPortfolioService(paper);
         var evaluator = strategyFactory.create(
                 paper.strategy().toStrategyDefinition(),
                 StrategyEvaluatorContext.ta4jOrQueued(
-                        marketSnapshotProvider.series(), paper.strategy().actions()));
+                        marketSnapshotProvider.series(), paper.strategy().actions()),
+                paper.adxFilter());
         var executionService = createExecutionService(paper, client, portfolioService);
         var runtime = new TradingRuntime(
                 definition,

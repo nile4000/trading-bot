@@ -5,6 +5,7 @@ import java.nio.file.Path;
 
 import ch.lueem.tradingbot.core.runtime.BotMode;
 import ch.lueem.tradingbot.core.runtime.TradingDefinition;
+import ch.lueem.tradingbot.core.strategy.AdxFilterConfig;
 import ch.lueem.tradingbot.core.strategy.definition.StrategyDefinition;
 
 /**
